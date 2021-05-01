@@ -1,10 +1,11 @@
 module Main exposing (..)
 
 import Browser exposing (Document)
-import Html.Styled as Html exposing (Html)
+-- import Html.Styled as Html exposing (Html)
 import TimeSheet
 
 
+main : Program () Model Msg
 main =
     Browser.document
         { init = init
@@ -14,16 +15,14 @@ main =
         }
 
 
-type alias Model =
-    { sheet : TimeSheet.Sheet
-    }
+type alias Model = TimeSheet.Sheet
 
 type Msg
     = Test
 
 init : () -> ( Model, Cmd Msg)
 init _ =
-    ( { sheet = TimeSheet.init }
+    ( TimeSheet.init
     , Cmd.none
     )
 
