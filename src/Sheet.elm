@@ -1,19 +1,17 @@
-module TimeSheet exposing ( Block
-                          , Sheet
+module Sheet exposing ( Block
+                      , Sheet
 
-                          , init
-                          , startNewBlock
-                          , endNewBlock
-                          )
+                      , init
+                      , startNewBlock
+                      , endNewBlock
+                      )
 
-import Color exposing (Color)
 import Dict exposing (Dict)
+import Project exposing (Project)
+import ProjectType exposing (ProjectType)
+import Stage
 import Time
 
-
-type alias ProjectID = String
-type alias StageID = String
-type alias ProjectTypeID = String
 
 {-| A Sheet is the entire data structure for the app.
 
@@ -23,39 +21,10 @@ type alias ProjectTypeID = String
 
 -}
 type alias Sheet =
-    { projectTypes : Dict ProjectTypeID ProjectType
-    , projects : Dict ProjectID Project
+    { projectTypes : List ProjectType
+    , projects : List Project
     , blocks : Dict Int Block
     , currentBlock : Maybe CurrentBlock
-    }
-
-
-{-| A Project type notes what kind of project it is.
--}
-type alias ProjectType =
-    { name : String
-    , stages : Dict StageID Stage
-    }
-
-
-{-| A project may have multiple stages. This allows the
-user to keep track of not just the jobs they are doing
-but sub-tasks within those jobs.
-
-The stage is defined by the project type.
-
--}
-type alias Stage =
-    { name : String
-    , color : Color
-    }
-
-
-{-| A Project is a particular work job.
--}
-type alias Project =
-    { name : String
-    , projectType : ProjectType
     }
 
 
@@ -65,17 +34,18 @@ project at a particular stage.
 type alias Block =
     { start : Time.Posix
     , end : Time.Posix
-    , project : ProjectID
-    , stage : Stage
+    , project : Project.ID
+    , stage : Stage.ID
     }
 
 
-{-| A Block that's in progress.
+{-| A Block that's in progress. It doesn't have an end time
+like a normal Block because a CurrentBlock has not ended yet.
 -}
 type alias CurrentBlock =
     { start : Time.Posix
-    , project : ProjectID
-    , stage : Stage
+    , project : Project.ID
+    , stage : Stage.ID
     }
 
 
@@ -88,19 +58,27 @@ type alias CurrentBlock =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
-
+{-| Creates a blank Sheet.
+-}
 init : Sheet
 init =
-    { projectTypes = Dict.empty
-    , projects = Dict.empty
+    { projectTypes = []
+    , projects = []
     , blocks = Dict.empty
     , currentBlock = Nothing
     }
 
 
+{-| Adds a Project to the Sheet.
+-}
+addProject : String -> ProjectType -> Sheet -> Sheet
+addProject name projType sheet =
+    { sheet | projects = List.append [ Project.create name projType ] sheet.projects }
+
+
 {-| Starts a new block.
 -}
-startNewBlock : Time.Posix -> ProjectID -> Stage -> Sheet -> Sheet
+startNewBlock : Time.Posix -> Project.ID -> Stage.ID -> Sheet -> Sheet
 startNewBlock startTime project stage sheet =
     { sheet
         | currentBlock =
@@ -113,14 +91,14 @@ startNewBlock startTime project stage sheet =
 
 
 {-| Ends the current block and attaches it to the record of blocks.
+
+Will return the same sheet with no changes if there is no current block.
 -}
 endNewBlock : Time.Posix -> Sheet -> Sheet
 endNewBlock endTime sheet =
     case sheet.currentBlock of
         Nothing ->
             sheet
-
-        -- just return the sheet as-is
         Just currentBlock ->
             let
                 newBlock =
