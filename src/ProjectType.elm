@@ -1,4 +1,4 @@
-module ProjectType exposing (ProjectType, ID)
+module ProjectType exposing (ProjectType, ID, create)
 
 import Dict exposing (Dict)
 import Stage exposing (Stage)
@@ -11,5 +11,11 @@ type alias ID = Int
 -}
 type alias ProjectType =
     { name : String
-    , stages : Dict Stage.ID Stage
+    , stages : Maybe (Dict Stage.ID Stage)
+    }
+
+create : String -> Maybe (Dict Stage.ID Stage) -> ProjectType
+create name stages =
+    { name = name
+    , stages = stages
     }

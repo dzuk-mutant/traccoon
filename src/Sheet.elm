@@ -2,9 +2,14 @@ module Sheet exposing ( Block
                       , Sheet
 
                       , init
-                      , startNewBlock
-                      , endNewBlock
+                      , addProject
+                      , startCurrentBlock
+                      , endCurrentBlock
                       )
+
+
+{-| The module that handles the Sheet - the core data structure for Traccoon.
+-}
 
 import Dict exposing (Dict)
 import Project exposing (Project)
@@ -15,9 +20,13 @@ import Time
 
 {-| A Sheet is the entire data structure for the app.
 
-  - Blocks are listed chronologically from the earliest to the latest, 
-    their Dict key is the start time as an Int in POSIX milliseconds.
-  - The current block is the current block being counted down from (if any).
+Blocks are listed chronologically from the earliest to the latest, 
+their Dict key is the start time as an Int in POSIX milliseconds. There
+should never be overlapping blocks.
+
+The current block is the block being created from the user working on
+a project right now (if any). The user can only have one current block
+at a time.
 
 -}
 type alias Sheet =
@@ -41,6 +50,8 @@ type alias Block =
 
 {-| A Block that's in progress. It doesn't have an end time
 like a normal Block because a CurrentBlock has not ended yet.
+
+The user can only have one CurrentBlock at a time.
 -}
 type alias CurrentBlock =
     { start : Time.Posix
@@ -78,8 +89,8 @@ addProject name projType sheet =
 
 {-| Starts a new block.
 -}
-startNewBlock : Time.Posix -> Project.ID -> Stage.ID -> Sheet -> Sheet
-startNewBlock startTime project stage sheet =
+startCurrentBlock : Time.Posix -> Project.ID -> Stage.ID -> Sheet -> Sheet
+startCurrentBlock startTime project stage sheet =
     { sheet
         | currentBlock =
             Just
@@ -94,8 +105,8 @@ startNewBlock startTime project stage sheet =
 
 Will return the same sheet with no changes if there is no current block.
 -}
-endNewBlock : Time.Posix -> Sheet -> Sheet
-endNewBlock endTime sheet =
+endCurrentBlock : Time.Posix -> Sheet -> Sheet
+endCurrentBlock endTime sheet =
     case sheet.currentBlock of
         Nothing ->
             sheet
