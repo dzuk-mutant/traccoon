@@ -1,4 +1,4 @@
-module Subtask exposing (Subtask, ID, create, createWithHexColor)
+module Subtask exposing (Subtask, ID, fromValues, fromStrAndHexColor)
 
 
 {-| The module that handles Stages - sub-tasks within a project.
@@ -24,8 +24,8 @@ type alias Subtask =
 
 {-| Creates a stage with a name string and a color value.
 -}
-create : String -> Color -> Subtask
-create name color =
+fromValues : String -> Color -> Subtask
+fromValues name color =
     { name = name 
     , color = color
     }
@@ -35,8 +35,8 @@ create name color =
 
 If the Hex is invalid, the function will return nothing.
 -}
-createWithHexColor : String -> String -> Maybe Subtask
-createWithHexColor name colorHex =
+fromStrAndHexColor : String -> String -> Maybe Subtask
+fromStrAndHexColor name colorHex =
     case Color.Convert.hexToColor colorHex of
         Err _ ->
             Nothing

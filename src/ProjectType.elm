@@ -1,4 +1,4 @@
-module ProjectType exposing (ProjectType, ID, Breakdown(..), createMonolithic, createSubtasked)
+module ProjectType exposing (ProjectType, ID, Breakdown(..), monolithic, subtasked)
 
 import Array exposing (Array)
 import Color exposing (Color)
@@ -25,14 +25,14 @@ type Breakdown
     = Monolithic Color
     | Subtasked (Array Subtask)
 
-createMonolithic : String -> Color -> ProjectType
-createMonolithic name color =
+monolithic : String -> Color -> ProjectType
+monolithic name color =
     { name = name
     , breakdown = Monolithic color
     }
 
-createSubtasked : String -> Array Subtask -> ProjectType
-createSubtasked name subtasks =
+subtasked : String -> Array Subtask -> ProjectType
+subtasked name subtasks =
     { name = name
     , breakdown = Subtasked subtasks
     }

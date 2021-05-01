@@ -1,5 +1,7 @@
-module Project exposing (Project, ID, MonetaryValue(..), create)
+module Project exposing (Project, ID, MonetaryValue(..), fromValues)
 
+
+import Currency
 import ProjectType
 
 
@@ -15,17 +17,20 @@ type alias Project =
     , monetaryValue : MonetaryValue
     }
 
-
 {-| The monetary value of a project (if any.)
+
+There's space here for hourly fees, but that's something I'd be
+willing to explore at a later stage, not right now.
 -}
 type MonetaryValue
     = None
-    | FlatFee Float
-    | HourlyRate Float
+    | FlatFee Currency.Value
 
 
-create : String -> ProjectType.ID -> MonetaryValue -> Project
-create name projTypeID value =
+{-| Creates a Project from it's base values.
+-}
+fromValues : String -> ProjectType.ID -> MonetaryValue -> Project
+fromValues name projTypeID value =
     { name = name
     , projectType = projTypeID
     , monetaryValue = value

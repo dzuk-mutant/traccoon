@@ -89,7 +89,7 @@ init =
 addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Sheet
 addProject name projTypeID mValue sheet =
     { sheet | projects = 
-        Array.append ( Array.fromList [ Project.create name projTypeID mValue ] ) sheet.projects
+        Array.append ( Array.fromList [ Project.fromValues name projTypeID mValue ] ) sheet.projects
     }
 
 {-| Edits a project and saves the edit back into the Sheet.
