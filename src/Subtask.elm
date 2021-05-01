@@ -1,4 +1,4 @@
-module Stage exposing (Stage, ID, create, createWithHexColor)
+module Subtask exposing (Subtask, ID, create, createWithHexColor)
 
 
 {-| The module that handles Stages - sub-tasks within a project.
@@ -16,7 +16,7 @@ but sub-tasks within those jobs.
 A stage is defined within a project type.
 
 -}
-type alias Stage =
+type alias Subtask =
     { name : String
     , color : Color
     }
@@ -24,7 +24,7 @@ type alias Stage =
 
 {-| Creates a stage with a name string and a color value.
 -}
-create : String -> Color -> Stage
+create : String -> Color -> Subtask
 create name color =
     { name = name 
     , color = color
@@ -35,7 +35,7 @@ create name color =
 
 If the Hex is invalid, the function will return nothing.
 -}
-createWithHexColor : String -> String -> Maybe Stage
+createWithHexColor : String -> String -> Maybe Subtask
 createWithHexColor name colorHex =
     case Color.Convert.hexToColor colorHex of
         Err _ ->

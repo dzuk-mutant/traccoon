@@ -1,6 +1,6 @@
-module Project exposing (Project, ID, create)
+module Project exposing (Project, ID, MonetaryValue(..), create)
 
-import ProjectType exposing (ProjectType)
+import ProjectType
 
 
 
@@ -11,12 +11,22 @@ type alias ID = Int
 -}
 type alias Project =
     { name : String
-    , projectType : ProjectType
+    , projectType : ProjectType.ID
+    , monetaryValue : MonetaryValue
     }
 
 
-create : String -> ProjectType -> Project
-create name projectType =
+{-| The monetary value of a project (if any.)
+-}
+type MonetaryValue
+    = None
+    | FlatFee Float
+    | HourlyRate Float
+
+
+create : String -> ProjectType.ID -> MonetaryValue -> Project
+create name projTypeID value =
     { name = name
-    , projectType = projectType
+    , projectType = projTypeID
+    , monetaryValue = value
     }

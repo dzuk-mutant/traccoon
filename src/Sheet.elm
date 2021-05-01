@@ -2,7 +2,10 @@ module Sheet exposing ( Block
                       , Sheet
 
                       , init
+                      
                       , addProject
+                      , editProject
+
                       , startCurrentBlock
                       , endCurrentBlock
                       )
@@ -11,10 +14,11 @@ module Sheet exposing ( Block
 {-| The module that handles the Sheet - the core data structure for Traccoon.
 -}
 
+import Array exposing (Array)
 import Dict exposing (Dict)
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
-import Stage
+import Subtask
 import Time
 
 
@@ -30,8 +34,8 @@ at a time.
 
 -}
 type alias Sheet =
-    { projectTypes : List ProjectType
-    , projects : List Project
+    { projectTypes : Array ProjectType
+    , projects : Array Project
     , blocks : Dict Int Block
     , currentBlock : Maybe CurrentBlock
     }
@@ -44,7 +48,7 @@ type alias Block =
     { start : Time.Posix
     , end : Time.Posix
     , project : Project.ID
-    , stage : Stage.ID
+    , stage : Subtask.ID
     }
 
 
@@ -56,7 +60,7 @@ The user can only have one CurrentBlock at a time.
 type alias CurrentBlock =
     { start : Time.Posix
     , project : Project.ID
-    , stage : Stage.ID
+    , stage : Subtask.ID
     }
 
 
@@ -73,8 +77,8 @@ type alias CurrentBlock =
 -}
 init : Sheet
 init =
-    { projectTypes = []
-    , projects = []
+    { projectTypes = Array.empty
+    , projects = Array.empty
     , blocks = Dict.empty
     , currentBlock = Nothing
     }
@@ -82,14 +86,36 @@ init =
 
 {-| Adds a Project to the Sheet.
 -}
-addProject : String -> ProjectType -> Sheet -> Sheet
-addProject name projType sheet =
-    { sheet | projects = List.append [ Project.create name projType ] sheet.projects }
+addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Sheet
+addProject name projTypeID mValue sheet =
+    { sheet | projects = 
+        Array.append ( Array.fromList [ Project.create name projTypeID mValue ] ) sheet.projects
+    }
+
+{-| Edits a project and saves the edit back into the Sheet.
+
+Will just return the Sheet as-is if the given Project ID doesn't exist.
+
+A Project's type cannot be changed.
+-}
+editProject : String -> Project.MonetaryValue -> Project.ID -> Sheet -> Sheet
+editProject newName newMValue projectID sheet =
+    case Array.get projectID sheet.projects of
+        Nothing -> sheet
+        Just project ->
+            let
+                newProject =
+                    { project | name = newName
+                              , monetaryValue = newMValue
+                    }
+            in
+                { sheet | projects = Array.set projectID newProject sheet.projects
+                }
 
 
 {-| Starts a new block.
 -}
-startCurrentBlock : Time.Posix -> Project.ID -> Stage.ID -> Sheet -> Sheet
+startCurrentBlock : Time.Posix -> Project.ID -> Subtask.ID -> Sheet -> Sheet
 startCurrentBlock startTime project stage sheet =
     { sheet
         | currentBlock =
