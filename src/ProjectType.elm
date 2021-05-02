@@ -5,14 +5,9 @@ import Color exposing (Color)
 import Subtask exposing (Subtask)
 
 
-type alias ID =
-    Int
-
+type alias ID = Int
 
 {-| A Project type notes what kind of project it is.
-
-A project may or may not have stages.
-
 -}
 type alias ProjectType =
     { name : String
@@ -21,6 +16,7 @@ type alias ProjectType =
 
 
 {-| A Project type can be:
+
 - Monolithic (it cannot be broken down into subtasks)
 - HasSubtasks (it can be broken down into subtasks)
 -}
@@ -29,13 +25,16 @@ type Breakdown
     | Subtasked (Array Subtask)
 
 
+{-| Creates a Monolithic ProjectType.
+-}
 monolithic : String -> Color -> ProjectType
 monolithic name color =
     { name = name
     , breakdown = Monolithic color
     }
 
-
+{-| Creates Subtasked ProjectType.
+-}
 subtasked : String -> Array Subtask -> ProjectType
 subtasked name subtasks =
     { name = name

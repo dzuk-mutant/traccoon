@@ -98,7 +98,7 @@ moneyPerHour proj =
                         -- turn into hours
                         |> (\v -> val.amount / v)
             in
-            -- return the monthly val with the same currency.
+            -- return the monthly val in the same currency.
             Just { val | amount = hourlyValue }
 
         Hourly val ->

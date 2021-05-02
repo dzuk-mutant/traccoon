@@ -1,5 +1,6 @@
-module Block exposing (Block, fromTimes)
+module Block exposing (Block, fromValues)
 
+import Subtask
 import Time
 
 
@@ -9,15 +10,15 @@ project at a particular stage.
 type alias Block =
     { start : Time.Posix
     , end : Time.Posix
-
-    -- add a subtask!
+    , subtaskID : Maybe Subtask.ID
     }
 
 
-{-| Creates a block from a start time and an end time.
+{-| Creates a block from it's values.
 -}
-fromTimes : Time.Posix -> Time.Posix -> Block
-fromTimes start end =
+fromValues : Time.Posix -> Time.Posix -> Maybe Subtask.ID -> Block
+fromValues start end subtaskID =
     { start = start
     , end = end
+    , subtaskID = subtaskID
     }

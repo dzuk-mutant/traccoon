@@ -37,11 +37,12 @@ like a normal Block because a CurrentBlock has not ended yet.
 
 The user can only have one CurrentBlock at a time.
 
+A Block may have a Subtask ID depending on the Project's ProjectType.
 -}
 type alias CurrentBlock =
     { start : Time.Posix
     , projectID : Project.ID
-    , stage : Subtask.ID
+    , subtaskID : Maybe Subtask.ID
     }
 
 
@@ -103,14 +104,14 @@ editProject newName newMValue projectID sheet =
 
 {-| Starts a new block.
 -}
-startCurrentBlock : Time.Posix -> Project.ID -> Subtask.ID -> Sheet -> Sheet
-startCurrentBlock startTime projectID stage sheet =
+startCurrentBlock : Time.Posix -> Project.ID -> Maybe Subtask.ID -> Sheet -> Sheet
+startCurrentBlock startTime projectID subtaskID sheet =
     { sheet
         | currentBlock =
             Just
                 { start = startTime
                 , projectID = projectID
-                , stage = stage
+                , subtaskID = subtaskID
                 }
     }
 
@@ -129,11 +130,7 @@ endCurrentBlock endTime sheet =
 
         Just currentBlock ->
             let
-                projID =
-                    currentBlock.projectID
-
-                newBlock =
-                    Block.fromTimes currentBlock.start endTime
+                projID = currentBlock.projectID
             in
             case Array.get projID sheet.projects of
                 Nothing ->
@@ -141,8 +138,8 @@ endCurrentBlock endTime sheet =
 
                 Just proj ->
                     let
-                        newProj =
-                            Project.addBlock newBlock proj
+                        newBlock = Block.fromValues currentBlock.start endTime currentBlock.subtaskID
+                        newProj = Project.addBlock newBlock proj
                     in
                     { sheet
                         | currentBlock = Nothing
