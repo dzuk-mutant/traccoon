@@ -40,6 +40,13 @@ import Time
 
 type alias ID = Int
 
+
+{-| Blocks are a Dict so they can be deleted and edited.
+
+The key of blocks in a project is the project's start time as an Int.
+
+( `key == Time.posixToMillis block.start` )
+-}
 type alias Blocks = Dict Int Block
 
 
@@ -90,7 +97,7 @@ fromValues name projTypeID value =
 -}
 addBlock : Block -> Project -> Project
 addBlock newBlock proj =
-    { proj | blocks = Dict.update (Time.posixToMillis newBlock.start) (\v -> Just newBlock) proj.blocks }
+    { proj | blocks = Dict.update (Time.posixToMillis newBlock.start) (\_ -> Just newBlock) proj.blocks }
 
 
 {-| Deletes a block from a Project.
@@ -137,13 +144,11 @@ toTotalTime proj =
         |> List.foldl (+) 0
 
 
-{-| Breaks down a Project into subtasks and the amount of
-time spent on that particular subtask (as an Int in
-milliseconds).
+{-| Returns a Dict, the key is the Subtask ID and the value is the
+total time length of all the blocks that have that Subtask ID.
 
-This just provides possible Subtask IDs, it does not
-provide information on what those subtasks are (because
- that's something only the Sheet can do.)
+This is so a breakdown of how much the user has spent on particular
+subtasks can be presented.
 -}
 toTimeBreakdown : Project -> Dict Subtask.ID Int
 toTimeBreakdown proj =
