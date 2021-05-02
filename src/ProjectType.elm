@@ -19,6 +19,10 @@ type alias ProjectType =
 
 - Monolithic (it cannot be broken down into subtasks)
 - HasSubtasks (it can be broken down into subtasks)
+
+A Project with a Monolithic ProjectType will still have
+Subtask IDs (because of specific technical restrictions of Elm),
+it's just that all the IDs will be zero.
 -}
 type Breakdown
     = Monolithic Color

@@ -42,7 +42,7 @@ A Block may have a Subtask ID depending on the Project's ProjectType.
 type alias CurrentBlock =
     { start : Time.Posix
     , projectID : Project.ID
-    , subtaskID : Maybe Subtask.ID
+    , subtaskID : Subtask.ID
     }
 
 
@@ -104,7 +104,7 @@ editProject newName newMValue projectID sheet =
 
 {-| Starts a new block.
 -}
-startCurrentBlock : Time.Posix -> Project.ID -> Maybe Subtask.ID -> Sheet -> Sheet
+startCurrentBlock : Time.Posix -> Project.ID -> Subtask.ID -> Sheet -> Sheet
 startCurrentBlock startTime projectID subtaskID sheet =
     { sheet
         | currentBlock =
