@@ -1,21 +1,17 @@
-module Sheet exposing ( Block
-                      , Sheet
-
-                      , init
-                      
-                      , addProject
-                      , editProject
-
-                      , startCurrentBlock
-                      , endCurrentBlock
-                      )
-
+module Sheet exposing
+    ( Sheet
+    , addProject
+    , editProject
+    , endCurrentBlock
+    , init
+    , startCurrentBlock
+    )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
 -}
 
 import Array exposing (Array)
-import Dict exposing (Dict)
+import Block
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
 import Subtask
@@ -23,10 +19,6 @@ import Time
 
 
 {-| A Sheet is the entire data structure for the app.
-
-Blocks are listed chronologically from the earliest to the latest, 
-their Dict key is the start time as an Int in POSIX milliseconds. There
-should never be overlapping blocks.
 
 The current block is the block being created from the user working on
 a project right now (if any). The user can only have one current block
@@ -36,19 +28,7 @@ at a time.
 type alias Sheet =
     { projectTypes : Array ProjectType
     , projects : Array Project
-    , blocks : Dict Int Block
     , currentBlock : Maybe CurrentBlock
-    }
-
-
-{-| A Block is a span of time worked on a particular
-project at a particular stage.
--}
-type alias Block =
-    { start : Time.Posix
-    , end : Time.Posix
-    , project : Project.ID
-    , stage : Subtask.ID
     }
 
 
@@ -56,10 +36,11 @@ type alias Block =
 like a normal Block because a CurrentBlock has not ended yet.
 
 The user can only have one CurrentBlock at a time.
+
 -}
 type alias CurrentBlock =
     { start : Time.Posix
-    , project : Project.ID
+    , projectID : Project.ID
     , stage : Subtask.ID
     }
 
@@ -73,13 +54,13 @@ type alias CurrentBlock =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+
 {-| Creates a blank Sheet.
 -}
 init : Sheet
 init =
     { projectTypes = Array.empty
     , projects = Array.empty
-    , blocks = Dict.empty
     , currentBlock = Nothing
     }
 
@@ -88,40 +69,47 @@ init =
 -}
 addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Sheet
 addProject name projTypeID mValue sheet =
-    { sheet | projects = 
-        Array.append ( Array.fromList [ Project.fromValues name projTypeID mValue ] ) sheet.projects
+    { sheet
+        | projects =
+            Array.append (Array.fromList [ Project.fromValues name projTypeID mValue ]) sheet.projects
     }
+
 
 {-| Edits a project and saves the edit back into the Sheet.
 
 Will just return the Sheet as-is if the given Project ID doesn't exist.
 
 A Project's type cannot be changed.
+
 -}
 editProject : String -> Project.MonetaryValue -> Project.ID -> Sheet -> Sheet
 editProject newName newMValue projectID sheet =
     case Array.get projectID sheet.projects of
-        Nothing -> sheet
+        Nothing ->
+            sheet
+
         Just project ->
             let
                 newProject =
-                    { project | name = newName
-                              , monetaryValue = newMValue
+                    { project
+                        | name = newName
+                        , monetaryValue = newMValue
                     }
             in
-                { sheet | projects = Array.set projectID newProject sheet.projects
-                }
+            { sheet
+                | projects = Array.set projectID newProject sheet.projects
+            }
 
 
 {-| Starts a new block.
 -}
 startCurrentBlock : Time.Posix -> Project.ID -> Subtask.ID -> Sheet -> Sheet
-startCurrentBlock startTime project stage sheet =
+startCurrentBlock startTime projectID stage sheet =
     { sheet
         | currentBlock =
             Just
                 { start = startTime
-                , project = project
+                , projectID = projectID
                 , stage = stage
                 }
     }
@@ -129,23 +117,34 @@ startCurrentBlock startTime project stage sheet =
 
 {-| Ends the current block and attaches it to the record of blocks.
 
-Will return the same sheet with no changes if there is no current block.
+Will return the same sheet with no changes if there is no current
+block or if the project cannot be found.
+
 -}
 endCurrentBlock : Time.Posix -> Sheet -> Sheet
 endCurrentBlock endTime sheet =
     case sheet.currentBlock of
         Nothing ->
             sheet
+
         Just currentBlock ->
             let
+                projID =
+                    currentBlock.projectID
+
                 newBlock =
-                    { start = currentBlock.start
-                    , end = endTime
-                    , project = currentBlock.project
-                    , stage = currentBlock.stage
-                    }
+                    Block.fromTimes currentBlock.start endTime
             in
-            { sheet
-                | currentBlock = Nothing
-                , blocks = Dict.insert (Time.posixToMillis newBlock.start) newBlock sheet.blocks
-            }
+            case Array.get projID sheet.projects of
+                Nothing ->
+                    sheet
+
+                Just proj ->
+                    let
+                        newProj =
+                            Project.addBlock newBlock proj
+                    in
+                    { sheet
+                        | currentBlock = Nothing
+                        , projects = Array.set projID newProj sheet.projects
+                    }

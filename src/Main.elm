@@ -1,7 +1,8 @@
 module Main exposing (..)
 
-import Browser exposing (Document)
 -- import Html.Styled as Html exposing (Html)
+
+import Browser exposing (Document)
 import Sheet exposing (Sheet)
 
 
@@ -15,16 +16,20 @@ main =
         }
 
 
-type alias Model = Sheet
+type alias Model =
+    Sheet
+
 
 type Msg
     = Test
 
-init : () -> ( Model, Cmd Msg)
+
+init : () -> ( Model, Cmd Msg )
 init _ =
     ( Sheet.init
     , Cmd.none
     )
+
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -41,5 +46,5 @@ subscriptions _ =
 view : Model -> Document Msg
 view _ =
     { title = "Traccoon"
-    , body = [ ]
+    , body = []
     }
