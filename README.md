@@ -1,5 +1,7 @@
 # Traccoon
 
+**This app is in progress and is not yet in a working state.**
+
 Track and visualise your working time.
 
 Traccoon is a simple freeform app to help you gain insight into working habits, and the amount of value generated from that working time. Think of it a bit like Apple Health or iOS Screen Time but for work. 
