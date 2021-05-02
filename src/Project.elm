@@ -174,15 +174,11 @@ toMoneyPerHour proj =
             Nothing
 
         FlatFee val ->
-            let
-                hourlyValue =
-                    proj
-                        |> toTotalTime
-                        |> (\v -> toFloat v / 3600000) -- convert to hours
-                        |> (\v -> val.amount / v)
-            in
-            -- return the monthly val in the same currency.
-            Just { val | amount = hourlyValue }
+            proj
+                |> toTotalTime
+                |> (\v -> toFloat v / 3600000) -- convert to hours
+                |> (\v -> val.amount / v)
+                |> (\v -> Just { val | amount = v }) -- return the monthly val in the same currency.
 
         Hourly val ->
             Just val
