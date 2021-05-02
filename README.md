@@ -26,3 +26,8 @@ Traccoon is a simple web app that runs locally, and uses .tracc files to store a
 - Manage your time for you - if you have time limits on work sessions (Pomodoro, etc.), that would have to be managed with something else.
 - Support teams.
 - Provide things that might be necessary for more professional applications.
+
+----
+
+
+Traccoon is licensed [CNPL v6](license).
