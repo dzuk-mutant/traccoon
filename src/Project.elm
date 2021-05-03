@@ -2,14 +2,17 @@ module Project exposing
     ( ID
     , MonetaryValue(..)
     , Project
+
+    , fromValues
     , addBlock
     , deleteBlock
     , edit
-    , filterBlocksBySubtask
-    , fromValues
+
+    , toTotalTime
     , toMoneyPerHour
     , toTimeBreakdown
-    , toTotalTime
+
+    , filterBlocksBySubtask
     )
 
 {-| A project is a particular job that has a clear beginning and end.
@@ -17,6 +20,17 @@ module Project exposing
 This module handles the types, creation, manipulation and conversion
 of these projects.
 
+# Types
+@docs ID, Project, MonetaryValue
+
+# Creating and editing
+@docs fromValues, addBlock, deleteBlock, edit
+
+# Generating Statistics
+@docs toTotalTime, toMoneyPerHour, toTimeBreakdown
+
+# Filtering data
+@docs filterBlocksBySubtask
 -}
 
 import Block exposing (Block)

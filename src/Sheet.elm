@@ -1,18 +1,26 @@
 module Sheet exposing
-    ( Err
-    , Sheet
-    , addProject
-    , addProjectType
-    , deleteProject
-    , editProject
-    , editProjectType
-    , endCurrentBlock
-    , toProjectBySubtask
-    , toProjectsByType
+    ( Sheet
+    , Err
+
     , init
-    , startCurrentBlock
+
     , updateTime
     , updateTimeZone
+    
+    , addProjectType
+    , editProjectType
+    , addProject
+    , editProject
+    , deleteProject
+
+    , startCurrentBlock
+    , endCurrentBlock
+    
+    , toProjectBySubtask
+    , toProjectsByType
+    
+    
+    
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
@@ -20,8 +28,8 @@ module Sheet exposing
 # Types
 @docs Sheet, Err
 
-# Init
-@docs init
+# Init and updating the time
+@docs init, updateTime, updateTimeZone
 
 # Creating and editing data points
 ## ProjectTypes
