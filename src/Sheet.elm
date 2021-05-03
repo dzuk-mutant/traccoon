@@ -2,19 +2,22 @@ module Sheet exposing
     ( Sheet
     , Err
     , addProject
+    , addProjectType
     , editProject
     , endCurrentBlock
     , init
     , startCurrentBlock
     , updateTime
     , updateTimeZone
+
+    , getProjectsByType
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
 -}
 
-import Array exposing (Array)
 import Block
+import Dict exposing (Dict)
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
 import Subtask
@@ -38,8 +41,8 @@ at a time.
 
 -}
 type alias Sheet =
-    { projectTypes : Array ProjectType
-    , projects : Array Project
+    { projTypes : Dict Int ProjectType
+    , projects : Dict Int Project
     , currentBlock : Maybe CurrentBlock
 
     , time : Time
@@ -84,7 +87,6 @@ type TimeZone
 -}
 type Err
     = TimeNotInitialised
-    | TimeZoneNotInitialised
     | NoCurrentBlock
     | ProjNotFound
 
@@ -101,8 +103,8 @@ type Err
 -}
 init : Sheet
 init =
-    { projectTypes = Array.empty
-    , projects = Array.empty
+    { projTypes = Dict.empty
+    , projects = Dict.empty
     , currentBlock = Nothing
 
     -- time and time zone must be initialised before they can be used.
@@ -143,14 +145,29 @@ updateTimeZone newZone sheet =
 ---------------------------------------------------------------------
 
 
+{-| Adds a ProjectType to the Sheet.
+-}
+addProjectType : String -> ProjectType.Breakdown -> Sheet -> Sheet
+addProjectType name breakdown sheet =
+    let
+        newProjType = ProjectType.fromValues name breakdown
+        newKey = getNewIncrementedDictKey sheet.projTypes
+    in
+        { sheet | projTypes = Dict.insert newKey newProjType sheet.projTypes }
+
+
+
 {-| Adds a Project to the Sheet.
 -}
 addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Sheet
 addProject name projTypeID mValue sheet =
-    { sheet
-        | projects =
-            Array.append (Array.fromList [ Project.fromValues name projTypeID mValue ]) sheet.projects
-    }
+    let
+        newProj = Project.fromValues name projTypeID mValue
+        newKey = getNewIncrementedDictKey sheet.projects
+    in
+        { sheet | projects = Dict.insert newKey newProj sheet.projects }
+
+
 
 
 {-| Edits a project and saves the edit back into the Sheet.
@@ -161,7 +178,7 @@ A Project's type cannot be changed.
 -}
 editProject : String -> Project.MonetaryValue -> Project.ID -> Sheet -> Result Err Sheet
 editProject newName newMValue projectID sheet =
-    case Array.get projectID sheet.projects of
+    case Dict.get projectID sheet.projects of
         Nothing -> Err ProjNotFound
         Just project ->
             let
@@ -173,7 +190,7 @@ editProject newName newMValue projectID sheet =
             in
             Ok
                 { sheet
-                    | projects = Array.set projectID newProject sheet.projects
+                    | projects = Dict.insert projectID newProject sheet.projects
                 }
 
 
@@ -218,7 +235,7 @@ endCurrentBlock sheet =
                     let
                         projID = currentBlock.projectID
                     in
-                    case Array.get projID sheet.projects of
+                    case Dict.get projID sheet.projects of
                         Nothing -> Err ProjNotFound
                         Just proj ->
                             let
@@ -228,5 +245,46 @@ endCurrentBlock sheet =
                             Ok 
                                 { sheet
                                     | currentBlock = Nothing
-                                    , projects = Array.set projID newProj sheet.projects
+                                    , projects = Dict.insert projID newProj sheet.projects
                                 }
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+--------------------------- MASS EDIT -------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+{-| Gets a fresh key for a Dict by looking for the highest existing
+key and providing a incrementing on that.
+
+If the Dict is empty, then it returns 0.
+
+This is important for adding a new item to an incremented Dict.
+-}
+getNewIncrementedDictKey : Dict Int v -> Int
+getNewIncrementedDictKey dict =
+    dict
+    |> Dict.keys
+    |> List.maximum
+    |> Maybe.map (\n -> n + 1)
+    |> Maybe.withDefault 0
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+-------------------------- QUERY STUFF ------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+
+{-| Gets all Projects that have a certain ProjectType ID.
+-}
+getProjectsByType : ProjectType.ID -> Sheet -> Dict Int Project
+getProjectsByType projTypeID sheet =
+    Dict.filter (\_ v -> v.projTypeID == projTypeID) sheet.projects
+
