@@ -2,21 +2,21 @@ module Project exposing
     ( ID
     , MonetaryValue(..)
     , Project
-
     , addBlock
     , deleteBlock
     , edit
+    , filterBlocksBySubtask
     , fromValues
-
-    , toTotalTime
-    , toTimeBreakdown
     , toMoneyPerHour
+    , toTimeBreakdown
+    , toTotalTime
     )
 
 {-| A project is a particular job that has a clear beginning and end.
 
 This module handles the types, creation, manipulation and conversion
 of these projects.
+
 -}
 
 import Block exposing (Block)
@@ -37,7 +37,8 @@ import Time
 ---------------------------------------------------------------------
 
 
-type alias ID = Int
+type alias ID =
+    Int
 
 
 {-| Blocks are a Dict so they can be deleted and edited.
@@ -45,8 +46,10 @@ type alias ID = Int
 The key of blocks in a project is the project's start time as an Int.
 
 ( `key == Time.posixToMillis block.start` )
+
 -}
-type alias Blocks = Dict Int Block
+type alias Blocks =
+    Dict Int Block
 
 
 {-| A Project is a particular work job.
@@ -70,6 +73,7 @@ type MonetaryValue
     = None
     | FlatFee Currency.Value
     | Hourly Currency.Value
+
 
 
 ---------------------------------------------------------------------
@@ -102,11 +106,11 @@ addBlock newBlock proj =
 {-| Deletes a block from a Project.
 
 If the ID doesn't exist, then the returned Project is the same.
+
 -}
 deleteBlock : Int -> Project -> Project
 deleteBlock blockID proj =
     { proj | blocks = Dict.remove blockID proj.blocks }
-
 
 
 {-| Takes an existing Project returns the same Project with a new
@@ -114,6 +118,7 @@ name and monetary value and set of blocks that's been given.
 
 (For technical reasons, a Project's ProjectType cannot be changed
 after it's been created.)
+
 -}
 edit : String -> MonetaryValue -> Project -> Project
 edit name monetaryValue proj =
@@ -122,6 +127,8 @@ edit name monetaryValue proj =
         , monetaryValue = monetaryValue
     }
 
+
+
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -129,7 +136,6 @@ edit name monetaryValue proj =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
-
 
 
 {-| A function that returns the total amount of time
@@ -148,21 +154,26 @@ total time length of all the blocks that have that Subtask ID.
 
 This is so a breakdown of how much the user has spent on particular
 subtasks can be presented.
+
 -}
 toTimeBreakdown : Project -> Dict Subtask.ID Int
 toTimeBreakdown proj =
     let
-        maybeAdd = (\block v -> 
-            case v of
-               Nothing -> Just <| Block.toTimeLength block
-               Just vv -> Just <| vv + Block.toTimeLength block
-            )
-        accumulate = (\block totals -> Dict.update block.subtaskID (maybeAdd block) totals)
+        maybeAdd =
+            \block v ->
+                case v of
+                    Nothing ->
+                        Just <| Block.toTimeLength block
+
+                    Just vv ->
+                        Just <| vv + Block.toTimeLength block
+
+        accumulate =
+            \block totals -> Dict.update block.subtaskID (maybeAdd block) totals
     in
-        proj.blocks
+    proj.blocks
         |> Dict.values
         |> List.foldl accumulate Dict.empty
-
 
 
 {-| Takes a Project and returns the amount of money earned
@@ -170,6 +181,7 @@ per hour on that Project.
 
 If the Project didn't have a monetary value to begin with,
 then this function returns Nothing.
+
 -}
 toMoneyPerHour : Project -> Maybe Currency.Value
 toMoneyPerHour proj =
@@ -180,9 +192,39 @@ toMoneyPerHour proj =
         FlatFee val ->
             proj
                 |> toTotalTime
-                |> (\v -> toFloat v / 3600000) -- convert to hours
+                -- convert to hours
+                |> (\v -> toFloat v / 3600000)
                 |> (\v -> val.amount / v)
-                |> (\v -> Just { val | amount = v }) -- return the monthly val in the same currency.
+                -- return the monthly val in the same currency.
+                |> (\v -> Just { val | amount = v })
 
+        
         Hourly val ->
             Just val
+
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+------------------------- FILTERS/QUERIES ---------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+
+{-| Returns a Project with blocks that are filtered based on
+Subtask. Will return Nothing if there are no Blocks matching
+that Subtask.
+-}
+filterBlocksBySubtask : Subtask.ID -> Project -> Maybe Project
+filterBlocksBySubtask subtaskID project =
+    let
+        filteredBlocks =
+            Dict.filter (\_ b -> b.subtaskID == subtaskID) project.blocks
+    in
+    if Dict.isEmpty filteredBlocks then
+        Nothing
+
+    else
+        Just { project | blocks = filteredBlocks }

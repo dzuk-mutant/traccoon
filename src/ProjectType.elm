@@ -2,8 +2,9 @@ module ProjectType exposing
     ( Breakdown(..)
     , ID
     , ProjectType
-    , fromValues
     , edit
+    , fromValues
+    , hasSubtask
     )
 
 import Array exposing (Array)
@@ -20,7 +21,10 @@ import Subtask exposing (Subtask)
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
-type alias ID = Int
+
+type alias ID =
+    Int
+
 
 {-| A Project type notes what kind of project it is.
 -}
@@ -32,12 +36,13 @@ type alias ProjectType =
 
 {-| A Project type can be:
 
-- Monolithic (it cannot be broken down into subtasks)
-- HasSubtasks (it can be broken down into subtasks)
+  - Monolithic (it cannot be broken down into subtasks)
+  - HasSubtasks (it can be broken down into subtasks)
 
 A Project with a Monolithic ProjectType will still have
 Subtask IDs (because of specific technical restrictions of Elm),
 it's just that all the IDs will be zero.
+
 -}
 type Breakdown
     = Monolithic Color
@@ -53,6 +58,7 @@ type Breakdown
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+
 {-| Creates a ProjectType from it's base values.
 -}
 fromValues : String -> Breakdown -> ProjectType
@@ -61,10 +67,23 @@ fromValues name breakdown =
     , breakdown = breakdown
     }
 
+
 {-| Edits a ProjectType's name.
 
 The breakdown of a ProjectType cannot be changed.
+
 -}
 edit : String -> ProjectType -> ProjectType
 edit newName projType =
     { projType | name = newName }
+
+
+{-| Checks if a subtask exists in a ProjectType.
+-}
+hasSubtask : Subtask.ID -> ProjectType -> Bool
+hasSubtask subtaskID projType =
+    case projType.breakdown of
+        Monolithic _ -> subtaskID == 0
+        Subtasked subtasks ->
+            Array.get subtaskID subtasks /= Nothing
+            

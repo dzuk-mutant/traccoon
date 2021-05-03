@@ -7,7 +7,9 @@ import Color exposing (Color)
 import Color.Convert
 
 
-type alias ID = Int
+type alias ID =
+    Int
+
 
 {-| A project may have multiple stages. This allows the
 user to keep track of not just the jobs they are doing

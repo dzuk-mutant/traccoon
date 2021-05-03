@@ -3,6 +3,7 @@ module Currency exposing (Code, Value, makeValue, valueToPlainString)
 import Round
 
 
+
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -10,6 +11,7 @@ import Round
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
+
 
 {-| ie. JPY, USD, GBP, EUR, NOK, etc.
 -}
@@ -56,6 +58,7 @@ makeValue amount currencyCode =
     }
 
 
+
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -76,16 +79,16 @@ valueToPlainString value =
         number =
             Round.floorCom 2 value.amount
     in
-        case matchCurrency value of
-            Nothing ->
-                value.currencyCode
-                    ++ " "
-                    ++ number
+    case matchCurrency value of
+        Nothing ->
+            value.currencyCode
+                ++ " "
+                ++ number
 
-            Just currency ->
-                Maybe.withDefault "" currency.prefix
-                    ++ Maybe.withDefault "" currency.symbol
-                    ++ number
+        Just currency ->
+            Maybe.withDefault "" currency.prefix
+                ++ Maybe.withDefault "" currency.symbol
+                ++ number
 
 
 {-| Internal function.
@@ -104,7 +107,8 @@ matchCurrency value =
         match =
             \currency -> currency.code == String.toUpper value.currencyCode
     in
-        List.head <| List.filter match currencies
+    List.head <| List.filter match currencies
+
 
 
 ---------------------------------------------------------------------

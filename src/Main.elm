@@ -39,15 +39,13 @@ update msg model =
     case msg of
         Tick time ->
             ( Sheet.updateTime time model, Cmd.none )
-        
+
         AdjustTimeZone zone ->
             ( Sheet.updateTimeZone zone model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    -- We're doing a high frequency so mis-clicks
-    -- don't create accidents in the software.
     Time.every 1 Tick
 
 
