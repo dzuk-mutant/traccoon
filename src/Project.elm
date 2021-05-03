@@ -19,7 +19,6 @@ This module handles the types, creation, manipulation and conversion
 of these projects.
 -}
 
-import Array exposing (Array)
 import Block exposing (Block)
 import Currency
 import Dict exposing (Dict)
