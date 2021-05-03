@@ -12,12 +12,13 @@ module Sheet exposing
     , updateTime
     , updateTimeZone
     , getProjectsByType
+    , getBlocksBySubtask
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
 -}
 
-import Block
+import Block exposing (Block)
 import Dict exposing (Dict)
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
@@ -80,17 +81,21 @@ type TimeZone
     | NoTZ
 
 
-{-|
+{-| The kinds of errors that can be generated when a Sheet function
+encounters a problem:
+
 - TimeNotInitialised - The time has not been initialised yet and thus cannot be used.
 - NoCurrentBlock - Tried to do something with the currentBlock even though there isn't one there.
 - ProjNotFound - Tried to access, use or edit a Project that's not there.
 - ProjTypeNotFound - Tried to access, use or edit a ProjectType that's not there.
+- BlockTimeOverlap - A block has been stopped at the same time as it's start, which cannot be allowed to happen.
 -}
 type Err
     = TimeNotInitialised
     | NoCurrentBlock
     | ProjNotFound
     | ProjTypeNotFound
+    | BlockTimeOverlap
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -260,27 +265,36 @@ to work are not there.
 -}
 endCurrentBlock : Sheet -> Result Err Sheet
 endCurrentBlock sheet =
+    -- make sure the current block is there
     case sheet.currentBlock of
         Nothing -> Err NoCurrentBlock
         Just currentBlock ->
+
+            -- make sure time is initialised
             case sheet.time of
                 NoTime -> Err TimeNotInitialised
                 HasTime time ->
-                    let
-                        projID = currentBlock.projectID
-                    in
-                    case Dict.get projID sheet.projects of
-                        Nothing -> Err ProjNotFound
-                        Just proj ->
-                            let
-                                newBlock = Block.fromValues currentBlock.start time currentBlock.subtaskID
-                                newProj = Project.addBlock newBlock proj
-                            in
-                            Ok 
-                                { sheet
-                                    | currentBlock = Nothing
-                                    , projects = Dict.insert projID newProj sheet.projects
-                                }
+
+                    -- make sure the start and end time do not overlap
+                    if time == currentBlock.start then
+                        Err BlockTimeOverlap
+                    else     
+
+                        let
+                            projID = currentBlock.projectID
+                        in                    
+                        case Dict.get projID sheet.projects of
+                            Nothing -> Err ProjNotFound
+                            Just proj ->
+                                let
+                                    newBlock = Block.fromValues currentBlock.start time currentBlock.subtaskID
+                                    newProj = Project.addBlock newBlock proj
+                                in
+                                Ok 
+                                    { sheet
+                                        | currentBlock = Nothing
+                                        , projects = Dict.insert projID newProj sheet.projects
+                                    }
 
 
 ---------------------------------------------------------------------
@@ -309,7 +323,24 @@ getProjectsByType : ProjectType.ID -> Sheet -> Dict Int Project
 getProjectsByType projTypeID sheet =
     Dict.filter (\_ v -> v.projTypeID == projTypeID) sheet.projects
 
-
+{-| Gets all Projects that have a certain ProjectType ID with
+only the blocks that have a certain Subtask ID.
+-}
+getBlocksBySubtask : ProjectType.ID -> Subtask.ID -> Sheet -> Dict Project.ID Project
+getBlocksBySubtask projTypeID subtaskID sheet =
+    let
+        filterBySubtask = (\_ b -> b.subtaskID == subtaskID)
+        filterBlocks = (\_ proj ->
+            { proj | blocks = Dict.filter filterBySubtask proj.blocks}
+            )
+        checkForEmptyProjects = (\_ proj ->
+            not <| Dict.isEmpty proj.blocks
+            )
+    in
+    sheet
+    |> getProjectsByType projTypeID
+    |> Dict.map filterBlocks
+    |> Dict.filter checkForEmptyProjects
 
 
 ---------------------------------------------------------------------
