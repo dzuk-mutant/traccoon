@@ -16,6 +16,26 @@ module Sheet exposing
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
+
+# Types
+@docs Sheet, Err
+
+# Init
+@docs init
+
+# Creating and editing data points
+## ProjectTypes
+@docs addProjectType, editProjectType
+
+## Projects
+@docs addProject, editProject, deleteProject
+
+# Creating new blocks
+@docs startCurrentBlock, endCurrentBlock
+
+# Filtering data
+@docs toProjectsByType, toProjectsBySubtask
+
 -}
 
 import Block

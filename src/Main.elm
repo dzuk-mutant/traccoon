@@ -23,30 +23,30 @@ type alias Model =
 
 
 type Msg
-    = Tick Time.Posix
-    | AdjustTimeZone Time.Zone
+    = Ticked Time.Posix
+    | AdjustedTimeZone Time.Zone
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Sheet.init
-    , Task.perform AdjustTimeZone Time.here
+    , Task.perform AdjustedTimeZone Time.here
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Tick time ->
+        Ticked time ->
             ( Sheet.updateTime time model, Cmd.none )
 
-        AdjustTimeZone zone ->
+        AdjustedTimeZone zone ->
             ( Sheet.updateTimeZone zone model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Time.every 1 Tick
+    Time.every 1 Ticked
 
 
 view : Model -> Document Msg
