@@ -4,6 +4,8 @@ module Main exposing (..)
 
 import Browser exposing (Document)
 import Sheet exposing (Sheet)
+import Task
+import Time
 
 
 main : Program () Model Msg
@@ -21,30 +23,36 @@ type alias Model =
 
 
 type Msg
-    = Test
+    = Tick Time.Posix
+    | AdjustTimeZone Time.Zone
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( Sheet.init
-    , Cmd.none
+    , Task.perform AdjustTimeZone Time.here
     )
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Test ->
-            ( model, Cmd.none )
+        Tick time ->
+            ( Sheet.updateTime time model, Cmd.none )
+        
+        AdjustTimeZone zone ->
+            ( Sheet.updateTimeZone zone model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    -- We're doing a high frequency so mis-clicks
+    -- don't create accidents in the software.
+    Time.every 1 Tick
 
 
 view : Model -> Document Msg
 view _ =
-    { title = "Traccoon"
+    { title = "Traccoon 🦝⌚"
     , body = []
     }

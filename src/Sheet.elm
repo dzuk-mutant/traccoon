@@ -5,6 +5,8 @@ module Sheet exposing
     , endCurrentBlock
     , init
     , startCurrentBlock
+    , updateTime
+    , updateTimeZone
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
@@ -38,8 +40,10 @@ type alias Sheet =
     { projectTypes : Array ProjectType
     , projects : Array Project
     , currentBlock : Maybe CurrentBlock
-    }
 
+    , time : Time.Posix
+    , zone : Time.Zone
+    }
 
 {-| A Block that's in progress. It doesn't have an end time
 like a normal Block because a CurrentBlock has not ended yet.
@@ -72,7 +76,23 @@ init =
     { projectTypes = Array.empty
     , projects = Array.empty
     , currentBlock = Nothing
+
+    -- the time does not start accurately
+    -- and must be properly initialised before use.
+    , time = Time.millisToPosix 0
+    , zone = Time.utc
     }
+
+
+updateTime : Time.Posix -> Sheet -> Sheet
+updateTime newTime sheet =
+    { sheet | time = newTime }
+
+
+updateTimeZone : Time.Zone -> Sheet -> Sheet
+updateTimeZone newZone sheet =
+    { sheet | zone = newZone }
+
 
 
 {-| Adds a Project to the Sheet.
@@ -112,13 +132,16 @@ editProject newName newMValue projectID sheet =
 
 
 {-| Starts a new block.
+
+It creates a new block in the currentBlock, and puts the time this
+function was used as the starting time.
 -}
-startCurrentBlock : Time.Posix -> Project.ID -> Subtask.ID -> Sheet -> Sheet
-startCurrentBlock startTime projectID subtaskID sheet =
+startCurrentBlock : Project.ID -> Subtask.ID -> Sheet -> Sheet
+startCurrentBlock projectID subtaskID sheet =
     { sheet
         | currentBlock =
             Just
-                { start = startTime
+                { start = sheet.time
                 , projectID = projectID
                 , subtaskID = subtaskID
                 }
@@ -127,12 +150,13 @@ startCurrentBlock startTime projectID subtaskID sheet =
 
 {-| Ends the current block and attaches it to the record of blocks.
 
+The time this function is called will become that block's end time.
+
 Will return the same sheet with no changes if there is no current
 block or if the project cannot be found.
-
 -}
-endCurrentBlock : Time.Posix -> Sheet -> Sheet
-endCurrentBlock endTime sheet =
+endCurrentBlock : Sheet -> Sheet
+endCurrentBlock sheet =
     case sheet.currentBlock of
         Nothing ->
             sheet
@@ -147,7 +171,7 @@ endCurrentBlock endTime sheet =
 
                 Just proj ->
                     let
-                        newBlock = Block.fromValues currentBlock.start endTime currentBlock.subtaskID
+                        newBlock = Block.fromValues currentBlock.start sheet.time currentBlock.subtaskID
                         newProj = Project.addBlock newBlock proj
                     in
                     { sheet
