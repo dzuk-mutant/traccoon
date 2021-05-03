@@ -4,12 +4,13 @@ module Sheet exposing
     , addProject
     , addProjectType
     , editProject
+    , editProjectType
     , endCurrentBlock
+    , deleteProject
     , init
     , startCurrentBlock
     , updateTime
     , updateTimeZone
-
     , getProjectsByType
     )
 
@@ -81,14 +82,15 @@ type TimeZone
 
 {-|
 - TimeNotInitialised - The time has not been initialised yet and thus cannot be used.
-- TimeZoneNotInitialised - The time zone has not been initialised yet and thus cannot be used.
 - NoCurrentBlock - Tried to do something with the currentBlock even though there isn't one there.
-- ProjNotFound - Tried to access or edit a Project that's not there.
+- ProjNotFound - Tried to access, use or edit a Project that's not there.
+- ProjTypeNotFound - Tried to access, use or edit a ProjectType that's not there.
 -}
 type Err
     = TimeNotInitialised
     | NoCurrentBlock
     | ProjNotFound
+    | ProjTypeNotFound
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -139,7 +141,7 @@ updateTimeZone newZone sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
----------------------- CREATE + EDIT STUFF --------------------------
+--------------- PROJECT AND PROJECT TYPE MANIPULATION ---------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -156,42 +158,74 @@ addProjectType name breakdown sheet =
         { sheet | projTypes = Dict.insert newKey newProjType sheet.projTypes }
 
 
+{-| Edits a ProjectType and saves the edit back into the Sheet.
+
+Will return an error if the ProjectType cannot be found.
+-}
+editProjectType : String -> ProjectType.ID -> Sheet -> Result Err Sheet
+editProjectType newName projTypeID sheet =
+    case Dict.get projTypeID sheet.projTypes of
+        Nothing -> Err ProjTypeNotFound
+        Just projType ->
+            let
+                newProjType = ProjectType.edit newName projType
+            in
+                Ok { sheet | projTypes = Dict.insert projTypeID newProjType sheet.projTypes }
+
 
 {-| Adds a Project to the Sheet.
+
+Will return an Err if the given Project Type ID does not exist.
 -}
-addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Sheet
+addProject : String -> ProjectType.ID -> Project.MonetaryValue -> Sheet -> Result Err Sheet
 addProject name projTypeID mValue sheet =
     let
         newProj = Project.fromValues name projTypeID mValue
         newKey = getNewIncrementedDictKey sheet.projects
     in
-        { sheet | projects = Dict.insert newKey newProj sheet.projects }
+        if Dict.member projTypeID sheet.projTypes then
+            Ok { sheet | projects = Dict.insert newKey newProj sheet.projects }
+        else
+            Err ProjTypeNotFound
+                
 
+{-| Edits a Project and saves the edit back into the Sheet.
 
-
-
-{-| Edits a project and saves the edit back into the Sheet.
-
-Will return an error if the project cannot be found.
-
-A Project's type cannot be changed.
+Will return an error if the Project cannot be found.
 -}
 editProject : String -> Project.MonetaryValue -> Project.ID -> Sheet -> Result Err Sheet
-editProject newName newMValue projectID sheet =
+editProject newName newMonValue projectID sheet =
     case Dict.get projectID sheet.projects of
         Nothing -> Err ProjNotFound
         Just project ->
             let
-                newProject =
-                    { project
-                        | name = newName
-                        , monetaryValue = newMValue
-                    }
+                newProject = Project.edit newName newMonValue project
             in
-            Ok
-                { sheet
-                    | projects = Dict.insert projectID newProject sheet.projects
-                }
+            Ok { sheet | projects = Dict.insert projectID newProject sheet.projects }
+
+
+{-| Deletes a project (and everything inside like blocks) from a Sheet.
+
+Will return an error if the project cannot be found.
+-}
+deleteProject : Project.ID -> Sheet -> Result Err Sheet
+deleteProject projID sheet =
+    if Dict.member projID sheet.projects then
+        Ok { sheet | projects = Dict.remove projID sheet.projects }
+    else
+        Err ProjNotFound
+
+
+
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+------------------------- CURRENT BLOCK STUFF -----------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 
 {-| Starts a new block.
@@ -257,20 +291,7 @@ endCurrentBlock sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
-{-| Gets a fresh key for a Dict by looking for the highest existing
-key and providing a incrementing on that.
 
-If the Dict is empty, then it returns 0.
-
-This is important for adding a new item to an incremented Dict.
--}
-getNewIncrementedDictKey : Dict Int v -> Int
-getNewIncrementedDictKey dict =
-    dict
-    |> Dict.keys
-    |> List.maximum
-    |> Maybe.map (\n -> n + 1)
-    |> Maybe.withDefault 0
 
 
 ---------------------------------------------------------------------
@@ -288,3 +309,28 @@ getProjectsByType : ProjectType.ID -> Sheet -> Dict Int Project
 getProjectsByType projTypeID sheet =
     Dict.filter (\_ v -> v.projTypeID == projTypeID) sheet.projects
 
+
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------- HELPER ---------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+{-| Gets a fresh key for a Dict by looking for the highest existing
+key and providing a incrementing on that.
+
+If the Dict is empty, then it returns 0.
+
+This is important for adding a new item to an incremented Dict.
+-}
+getNewIncrementedDictKey : Dict Int v -> Int
+getNewIncrementedDictKey dict =
+    dict
+    |> Dict.keys
+    |> List.maximum
+    |> Maybe.map (\n -> n + 1)
+    |> Maybe.withDefault 0

@@ -3,6 +3,7 @@ module ProjectType exposing
     , ID
     , ProjectType
     , fromValues
+    , edit
     )
 
 import Array exposing (Array)
@@ -52,8 +53,18 @@ type Breakdown
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+{-| Creates a ProjectType from it's base values.
+-}
 fromValues : String -> Breakdown -> ProjectType
 fromValues name breakdown =
     { name = name
     , breakdown = breakdown
     }
+
+{-| Edits a ProjectType's name.
+
+The breakdown of a ProjectType cannot be changed.
+-}
+edit : String -> ProjectType -> ProjectType
+edit newName projType =
+    { projType | name = newName }
