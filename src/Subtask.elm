@@ -1,4 +1,10 @@
-module Subtask exposing (ID, Subtask, fromStrAndHexColor, fromValues)
+module Subtask exposing
+    ( ID
+    , Subtask
+    , fromStrAndHexColor
+    , fromValues
+    , edit
+    )
 
 {-| The module that handles Stages - sub-tasks within a project.
 -}
@@ -49,3 +55,12 @@ fromStrAndHexColor name colorHex =
                 { name = name
                 , color = color
                 }
+
+
+{-| Changes a Subtask's name and color.
+-}
+edit : String -> Color -> Subtask -> Subtask
+edit name color subtask =
+    { subtask | name = name
+              , color = color
+    }

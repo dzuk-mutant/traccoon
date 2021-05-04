@@ -9,6 +9,9 @@ module Sheet exposing
     
     , addProjectType
     , editProjectType
+    , addSubtask
+    , deleteSubtask
+
     , addProject
     , editProject
     , deleteProject
@@ -18,8 +21,6 @@ module Sheet exposing
     
     , toProjectsFilteredBySubtask
     , toProjectsFilteredByType
-    
-    , replaceSubtaskIDs
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
@@ -32,7 +33,7 @@ module Sheet exposing
 
 # Creating and editing data points
 ## ProjectTypes
-@docs addProjectType, editProjectType
+@docs addProjectType, editProjectType, addSubtask, deleteSubtask
 
 ## Projects
 @docs addProject, editProject, deleteProject
@@ -42,16 +43,14 @@ module Sheet exposing
 
 # Filtering data
 @docs toProjectsFilteredByType, toProjectsFilteredBySubtask
-
-# Mass edits
-@docs replaceSubtaskIDs
 -}
 
 import Block
 import Dict exposing (Dict)
+import Helper
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
-import Subtask
+import Subtask exposing (Subtask)
 import Time
 
 
@@ -117,19 +116,23 @@ encounters a problem:
 
 - TimeNotInitialised - The time has not been initialised yet and thus cannot be used.
 - NoCurrentBlock - Tried to do something with the currentBlock even though there isn't one there.
+- BlockTimeOverlap - A block has been stopped at the same time as it's start, which cannot be allowed to happen.
 - ProjNotFound - Tried to access, use or edit a Project that's not there.
 - ProjTypeNotFound - Tried to access, use or edit a ProjectType that's not there.
-- SubtaskIDNotFound - Tried to access, use or edit a Subtask ID that's not there.
-- BlockTimeOverlap - A block has been stopped at the same time as it's start, which cannot be allowed to happen.
+- ProjTypeErr - A problem happened while trying to manipulate a ProjectType.
 
 -}
 type Err
     = TimeNotInitialised
     | NoCurrentBlock
-    | ProjNotFound
-    | ProjTypeNotFound
-    | SubtaskIDNotFound
     | BlockTimeOverlap
+
+    | ProjNotFound
+    
+    | ProjTypeNotFound
+    | ProjTypeErr ProjectType.Err
+
+    
 
 
 ---------------------------------------------------------------------
@@ -177,7 +180,7 @@ updateTimeZone newZone sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
---------------- PROJECT AND PROJECT TYPE MANIPULATION ---------------
+--------------------- PROJECT TYPE MANIPULATION ---------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -192,7 +195,7 @@ addProjectType name breakdown sheet =
             ProjectType.fromValues name breakdown
 
         newKey =
-            getNewIncrementedDictKey sheet.projTypes
+            Helper.getNewIncrementedDictKey sheet.projTypes
     in
     { sheet | projTypes = Dict.insert newKey newProjType sheet.projTypes }
 
@@ -211,9 +214,58 @@ editProjectType newName projTypeID sheet =
         Just projType ->
             let
                 newProjType =
-                    ProjectType.edit newName projType
+                    ProjectType.editName newName projType
             in
             Ok { sheet | projTypes = Dict.insert projTypeID newProjType sheet.projTypes }
+
+
+{-| Adds a Subtask to a particular ProjectType.
+
+Returns an error if the ProjectType doesn't exist or isn't subtasked.
+-}
+addSubtask : ProjectType.ID -> Subtask -> Sheet -> Result Err Sheet
+addSubtask projTypeID newSubtask sheet =
+    case getProjType projTypeID sheet of
+        Err e -> Err e
+        Ok projType ->
+            case ProjectType.addSubtask newSubtask projType of
+                Err e -> Err ( ProjTypeErr e )
+                Ok updatedProjType ->
+                    let
+                        updatedProjTypes = Dict.insert projTypeID updatedProjType sheet.projTypes
+                    in
+                        Ok { sheet | projTypes = updatedProjTypes }
+
+
+{-| Deletes a Subtask and replaces all instances of that Subtask
+with an alternative that does exist.
+
+Will return errors if the Subtask or ProjectTypeIDs are not there.
+-}
+deleteSubtask : ProjectType.ID -> Subtask.ID -> Subtask.ID -> Sheet -> Result Err Sheet
+deleteSubtask projTypeID subtaskToRemove replacementSubtask sheet =
+    case getProjType projTypeID sheet of
+        Err e -> Err e
+        Ok projType ->
+            case ProjectType.deleteSubtask subtaskToRemove projType of
+                Err e -> Err ( ProjTypeErr e )
+                Ok updatedProjType ->
+                    let
+                        updatedProjTypes = Dict.insert projTypeID updatedProjType sheet.projTypes
+                    in
+                        sheet
+                        |> replaceSubtaskIDs projTypeID subtaskToRemove replacementSubtask
+                        |> (\s -> {s | projTypes = updatedProjTypes })
+                        |> Ok
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+------------------------ PROJECT MANIPULATION -----------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 
 {-| Adds a Project to the Sheet.
@@ -228,7 +280,7 @@ addProject name projTypeID mValue sheet =
             Project.fromValues name projTypeID mValue
 
         newKey =
-            getNewIncrementedDictKey sheet.projects
+            Helper.getNewIncrementedDictKey sheet.projects
     in
     if Dict.member projTypeID sheet.projTypes then
         Ok { sheet | projects = Dict.insert newKey newProj sheet.projects }
@@ -274,7 +326,7 @@ deleteProject projID sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
-------------------------- CURRENT BLOCK STUFF -----------------------
+----------------------- CURRENT BLOCK STUFF -------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -364,15 +416,14 @@ endCurrentBlock sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
-
 {-| Gets all Projects that have a certain ProjectType ID.
 
 Returns an error if the ProjectType cannot be found in the database.
 -}
 toProjectsFilteredByType : ProjectType.ID -> Sheet -> Result Err (Dict Int Project)
 toProjectsFilteredByType projTypeID sheet =
-    if Dict.member projTypeID sheet.projTypes then
-        Ok <| internalToProjectsByType projTypeID sheet
+    if hasProjectTypeID projTypeID sheet then
+        Ok <| internalToProjectsFilteredByType projTypeID sheet
     else
         Err ProjTypeNotFound
 
@@ -399,10 +450,10 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
         Nothing -> Err ProjTypeNotFound
         Just projType ->
             if not <| ProjectType.hasSubtask subtaskID projType then
-                Err SubtaskIDNotFound
+                Err ( ProjTypeErr ProjectType.SubtaskNotFound )
             else
                 sheet
-                    |> internalToProjectsByType projTypeID
+                    |> internalToProjectsFilteredByType projTypeID
                     |> Dict.map (\_ p -> Project.filterBlocksBySubtask subtaskID p)
                     |> Dict.foldl compileResults Dict.empty
                     |> Ok
@@ -411,11 +462,19 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
---------------------------- MASS EDIT -------------------------------
+---------------------------- HELPER ---------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+{-| Gets a projectType from the Sheet. Will return an Err if it can't
+be found.
+-}
+getProjType : ProjectType.ID -> Sheet -> Result Err ProjectType
+getProjType projTypeID sheet =
+    case Dict.get projTypeID sheet.projTypes of
+        Nothing -> Err ProjTypeNotFound
+        Just projType -> Ok projType
 
 {-| Goes through all of the projects and replaces a specific Subtask ID with another one.
 -}
@@ -431,33 +490,16 @@ replaceSubtaskIDs projTypeID wantedID replacementID sheet =
     in
     { sheet | projects  = Dict.map replaceIDs sheet.projects}
 
-
----------------------------------------------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
----------------------------- HELPER ---------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
-
-
-{-| Gets a fresh key for a Dict by looking for the highest existing
-key and providing a incrementing on that.
-
-If the Dict is empty, then it returns 0.
-
-This is important for adding a new item to an incremented Dict.
-
+{-| The actual function that gets all of the Projects that have a certain ProjectType.
 -}
-getNewIncrementedDictKey : Dict Int v -> Int
-getNewIncrementedDictKey dict =
-    dict
-        |> Dict.keys
-        |> List.maximum
-        |> Maybe.map (\n -> n + 1)
-        |> Maybe.withDefault 0
-
-
-internalToProjectsByType : ProjectType.ID -> Sheet -> Dict Int Project
-internalToProjectsByType projTypeID sheet =
+internalToProjectsFilteredByType : ProjectType.ID -> Sheet -> Dict Int Project
+internalToProjectsFilteredByType projTypeID sheet =
     Dict.filter (\_ proj -> Project.hasProjectTypeID projTypeID proj) sheet.projects
+
+
+{-| Checks if a ProjectType ID exists.
+-}
+hasProjectTypeID : ProjectType.ID -> Sheet -> Bool
+hasProjectTypeID projTypeID sheet =
+    Dict.member projTypeID sheet.projTypes
+

@@ -1,15 +1,21 @@
 module ProjectType exposing
-    ( Breakdown(..)
-    , ID
+    ( ID
     , ProjectType
-    , edit
+    , Breakdown(..)
+    , Err(..)
+
     , fromValues
+    , editName
+    , addSubtask
+    , deleteSubtask
+
     , hasSubtask
     )
 
-import Array exposing (Array)
+import Dict exposing (Dict)
 import Color exposing (Color)
 import Subtask exposing (Subtask)
+import Helper
 
 
 
@@ -46,8 +52,19 @@ it's just that all the IDs will be zero.
 -}
 type Breakdown
     = Monolithic Color
-    | Subtasked (Array Subtask)
+    | Subtasked (Dict Int Subtask)
 
+
+{-| Errors that can happen in particular ProjectType operations.
+
+- ProjTypeHasNoSubtasks: A subtask was attempted to be edited
+or accessed when the ProjectType is Monolithic.
+- SubtaskNotFound: A subtask was attempted to be edited or
+accessed when it doesn't exist.
+-}
+type Err
+    = ProjTypeHasNoSubtasks
+    | SubtaskNotFound
 
 
 ---------------------------------------------------------------------
@@ -73,9 +90,50 @@ fromValues name breakdown =
 The breakdown of a ProjectType cannot be changed.
 
 -}
-edit : String -> ProjectType -> ProjectType
-edit newName projType =
+editName : String -> ProjectType -> ProjectType
+editName newName projType =
     { projType | name = newName }
+
+
+{-| Adds a subtask to a ProjectType. If a ProjectType is Monolithic,
+it will return an error.
+-}
+addSubtask : Subtask -> ProjectType -> Result Err ProjectType
+addSubtask newSubtask projType =
+    case projType.breakdown of
+        Monolithic _ -> Err ProjTypeHasNoSubtasks
+        Subtasked subtasks ->
+            let
+                newKey = Helper.getNewIncrementedDictKey subtasks
+            in
+            Ok { projType | breakdown = Subtasked <| Dict.insert newKey newSubtask subtasks  }
+
+
+{-| Deletes a subtask that's at a given ID. Will return
+an error if the ProjectType is Monolithic or the ID doesn't
+exist.
+
+**This function should never be used in isolation - Blocks with this
+subtaskID must be replaced with an alternative.**
+-}
+deleteSubtask : Subtask.ID -> ProjectType -> Result Err ProjectType
+deleteSubtask subtaskID projType =
+    if not <| hasSubtask subtaskID projType then
+        Err SubtaskNotFound
+    else
+        case projType.breakdown of
+            Monolithic _ -> Err ProjTypeHasNoSubtasks
+            Subtasked subtasks ->
+                Ok { projType | breakdown = Subtasked <| Dict.remove subtaskID subtasks }
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+----------------------------- QUERIES -------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
 
 
 {-| Checks if a subtask exists in a ProjectType.
@@ -85,5 +143,5 @@ hasSubtask subtaskID projType =
     case projType.breakdown of
         Monolithic _ -> subtaskID == 0
         Subtasked subtasks ->
-            Array.get subtaskID subtasks /= Nothing
+            Dict.member subtaskID subtasks
             
