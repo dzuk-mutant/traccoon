@@ -9,10 +9,14 @@ module Project exposing
     , edit
 
     , toTotalTime
-    , toMoneyPerHour
     , toTimeBreakdown
-
+    , toMoneyPerHour
+    , toTotalMoney
+    
+    , hasProjectTypeID
     , filterBlocksBySubtask
+
+    , replaceSubtaskIDs
     )
 
 {-| A project is a particular job that has a clear beginning and end.
@@ -27,15 +31,19 @@ of these projects.
 @docs fromValues, addBlock, deleteBlock, edit
 
 # Generating Statistics
-@docs toTotalTime, toMoneyPerHour, toTimeBreakdown
+@docs toTotalTime, toTimeBreakdown, toMoneyPerHour, toTotalMoney
 
 # Filtering data
 @docs filterBlocksBySubtask
+
+# Mass edit
+@docs replaceSubtaskIDs
 -}
 
 import Block exposing (Block)
 import Currency
 import Dict exposing (Dict)
+import Helper exposing (millisToHours)
 import ProjectType
 import Subtask
 import Time
@@ -132,7 +140,6 @@ name and monetary value and set of blocks that's been given.
 
 (For technical reasons, a Project's ProjectType cannot be changed
 after it's been created.)
-
 -}
 edit : String -> MonetaryValue -> Project -> Project
 edit name monetaryValue proj =
@@ -158,9 +165,9 @@ spent on a project as an Int in milliseconds.
 toTotalTime : Project -> Int
 toTotalTime proj =
     proj.blocks
-        |> Dict.values
-        |> List.map Block.toTimeLength
-        |> List.foldl (+) 0
+    |> Dict.values
+    |> List.map Block.toTimeLength
+    |> List.foldl (+) 0
 
 
 {-| Returns a Dict, the key is the Subtask ID and the value is the
@@ -186,8 +193,8 @@ toTimeBreakdown proj =
             \block totals -> Dict.update block.subtaskID (maybeAdd block) totals
     in
     proj.blocks
-        |> Dict.values
-        |> List.foldl accumulate Dict.empty
+    |> Dict.values
+    |> List.foldl accumulate Dict.empty
 
 
 {-| Takes a Project and returns the amount of money earned
@@ -195,7 +202,6 @@ per hour on that Project.
 
 If the Project didn't have a monetary value to begin with,
 then this function returns Nothing.
-
 -}
 toMoneyPerHour : Project -> Maybe Currency.Value
 toMoneyPerHour proj =
@@ -205,17 +211,38 @@ toMoneyPerHour proj =
 
         FlatFee val ->
             proj
-                |> toTotalTime
-                -- convert to hours
-                |> (\v -> toFloat v / 3600000)
-                |> (\v -> val.amount / v)
-                -- return the monthly val in the same currency.
-                |> (\v -> Just { val | amount = v })
-
+            |> toTotalTime
+            |> millisToHours
+            |> (\v -> val.amount / v)
+            -- return the monthly val in the same currency.
+            |> (\v -> Just { val | amount = v })
         
         Hourly val ->
             Just val
 
+
+{-| Takes a Project and returns the total amount of money earned
+across the entire duration of the Project.
+
+If the Project didn't have a monetary value to begin with,
+then this function returns Nothing.
+-}
+toTotalMoney : Project -> Maybe Currency.Value
+toTotalMoney proj =
+    case proj.monetaryValue of
+        None ->
+            Nothing
+
+        FlatFee val ->
+            Just val
+
+        Hourly val ->
+            proj
+            |> toTotalTime
+            |> millisToHours
+            |> (\v -> val.amount * v)
+            -- return the monthly val in the same currency.
+            |> (\v -> Just { val | amount = v })
 
 
 ---------------------------------------------------------------------
@@ -225,6 +252,12 @@ toMoneyPerHour proj =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
+
+{-| Checks whether a Project has a certain ProjectType ID.
+-}
+hasProjectTypeID : ProjectType.ID -> Project -> Bool
+hasProjectTypeID projTypeID proj =
+    proj.projTypeID == projTypeID
 
 
 {-| Returns a Project with blocks that are filtered based on
@@ -242,3 +275,31 @@ filterBlocksBySubtask subtaskID project =
 
     else
         Just { project | blocks = filteredBlocks }
+
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+-------------------------- MASS EDITS -------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+
+{-| Goes through all of a project's blocks and replaces one specific
+subtask ID with another subtaskID.
+
+This function assumes that you know that you know what Projects you're
+working on (ie. it has the right ProjectType ID.)
+-}
+replaceSubtaskIDs : Subtask.ID -> Subtask.ID -> Project -> Project
+replaceSubtaskIDs wantedID replacementID project =
+    let
+        replaceSubtaskID = (\_ block -> 
+            if block.subtaskID == wantedID then
+                { block | subtaskID = replacementID }
+            else
+                block
+            )
+    in
+        { project | blocks = Dict.map replaceSubtaskID project.blocks}

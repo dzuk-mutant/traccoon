@@ -16,11 +16,10 @@ module Sheet exposing
     , startCurrentBlock
     , endCurrentBlock
     
-    , toProjectBySubtask
-    , toProjectsByType
+    , toProjectsFilteredBySubtask
+    , toProjectsFilteredByType
     
-    
-    
+    , replaceSubtaskIDs
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
@@ -42,8 +41,10 @@ module Sheet exposing
 @docs startCurrentBlock, endCurrentBlock
 
 # Filtering data
-@docs toProjectsByType, toProjectsBySubtask
+@docs toProjectsFilteredByType, toProjectsFilteredBySubtask
 
+# Mass edits
+@docs replaceSubtaskIDs
 -}
 
 import Block
@@ -131,7 +132,6 @@ type Err
     | BlockTimeOverlap
 
 
-
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -155,7 +155,6 @@ init =
     }
 
 
-
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -173,7 +172,6 @@ updateTime newTime sheet =
 updateTimeZone : Time.Zone -> Sheet -> Sheet
 updateTimeZone newZone sheet =
     { sheet | zone = HasTZ newZone }
-
 
 
 ---------------------------------------------------------------------
@@ -361,21 +359,6 @@ endCurrentBlock sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
---------------------------- MASS EDIT -------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
-
-
-
-
-
-
-
-
----------------------------------------------------------------------
----------------------------------------------------------------------
----------------------------------------------------------------------
 -------------------------- QUERY STUFF ------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -386,8 +369,8 @@ endCurrentBlock sheet =
 
 Returns an error if the ProjectType cannot be found in the database.
 -}
-toProjectsByType : ProjectType.ID -> Sheet -> Result Err (Dict Int Project)
-toProjectsByType projTypeID sheet =
+toProjectsFilteredByType : ProjectType.ID -> Sheet -> Result Err (Dict Int Project)
+toProjectsFilteredByType projTypeID sheet =
     if Dict.member projTypeID sheet.projTypes then
         Ok <| internalToProjectsByType projTypeID sheet
     else
@@ -397,11 +380,11 @@ toProjectsByType projTypeID sheet =
 {-| Gets all Projects that have a certain ProjectType ID with
 only the blocks that have a certain Subtask ID.
 -}
-toProjectBySubtask : ProjectType.ID 
+toProjectsFilteredBySubtask : ProjectType.ID 
                     -> Subtask.ID
                     -> Sheet
                     -> Result Err (Dict Project.ID Project)
-toProjectBySubtask projTypeID subtaskID sheet =
+toProjectsFilteredBySubtask projTypeID subtaskID sheet =
     let
         compileResults =
             \k maybeProj results ->
@@ -424,6 +407,29 @@ toProjectBySubtask projTypeID subtaskID sheet =
                     |> Dict.foldl compileResults Dict.empty
                     |> Ok
 
+
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+--------------------------- MASS EDIT -------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+---------------------------------------------------------------------
+
+
+{-| Goes through all of the projects and replaces a specific Subtask ID with another one.
+-}
+replaceSubtaskIDs : ProjectType.ID -> Subtask.ID -> Subtask.ID -> Sheet -> Sheet
+replaceSubtaskIDs projTypeID wantedID replacementID sheet =
+    let
+        replaceIDs = (\_ proj -> 
+            if Project.hasProjectTypeID projTypeID proj then
+                Project.replaceSubtaskIDs wantedID replacementID proj
+            else
+                proj
+            )
+    in
+    { sheet | projects  = Dict.map replaceIDs sheet.projects}
 
 
 ---------------------------------------------------------------------
@@ -454,4 +460,4 @@ getNewIncrementedDictKey dict =
 
 internalToProjectsByType : ProjectType.ID -> Sheet -> Dict Int Project
 internalToProjectsByType projTypeID sheet =
-    Dict.filter (\_ v -> v.projTypeID == projTypeID) sheet.projects
+    Dict.filter (\_ proj -> Project.hasProjectTypeID projTypeID proj) sheet.projects
