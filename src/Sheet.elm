@@ -1,6 +1,8 @@
 module Sheet exposing
     ( Sheet
-    , Err
+    , Err(..)
+    , Time(..)
+    , TimeZone(..)
 
     , init
 
@@ -416,6 +418,7 @@ endCurrentBlock sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 
+
 {-| Gets all Projects that have a certain ProjectType ID.
 
 Returns an error if the ProjectType cannot be found in the database.
@@ -466,6 +469,7 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
+
 
 {-| Gets a projectType from the Sheet. Will return an Err if it can't
 be found.
