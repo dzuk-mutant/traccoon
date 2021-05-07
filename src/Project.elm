@@ -15,6 +15,7 @@ module Project exposing
     
     , hasProjectTypeID
     , filterBlocksBySubtask
+    , filterBlocksByTimeframe
 
     , replaceSubtaskIDs
     )
@@ -33,7 +34,7 @@ of these projects.
 # Generating Statistics
 @docs toTotalTime, toTimeBreakdown, toMoneyPerHour, toTotalMoney
 
-# Filtering data
+# Querying data
 @docs filterBlocksBySubtask
 
 # Mass edit
@@ -47,6 +48,7 @@ import Currency
 import Helper exposing (millisToHours)
 import ProjectType
 import Subtask
+import Time
 
 
 ---------------------------------------------------------------------
@@ -267,6 +269,28 @@ filterBlocksBySubtask subtaskID project =
 
     else
         Just { project | blocks = filteredBlocks }
+
+
+{-| Returns a Project with blocks that are filtered based on whether
+they have occurred within the specified timeframe. If there are no
+blocks that match the time frme, this will return Nothing.
+-}
+filterBlocksByTimeframe : Time.Posix -> Time.Posix -> Project -> Maybe Project
+filterBlocksByTimeframe startTime endTime project =
+    let
+        checkTimeframe = (\block ->
+            ((block.start == startTime) || (block.start == endTime) )
+            ||
+            ((block.end == startTime) || (block.end == endTime))
+            )
+        filteredBlocks = Array.filter checkTimeframe project.blocks
+    in
+    if Array.isEmpty filteredBlocks then
+        Nothing
+    else
+        Just { project | blocks = filteredBlocks }
+
+
 
 
 ---------------------------------------------------------------------

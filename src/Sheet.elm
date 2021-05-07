@@ -23,6 +23,7 @@ module Sheet exposing
     
     , toProjectsFilteredBySubtask
     , toProjectsFilteredByType
+    , toProjectsFilteredByTimeframe
     )
 
 {-| The module that handles the Sheet - the core data structure for Traccoon.
@@ -461,6 +462,30 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
                     |> Dict.foldl compileResults Dict.empty
                     |> Ok
 
+
+{-| Returns all projects that have blocks that are in a certain timeframe.
+The returned projects' blocks are also filtered based on whether they
+are in that time frame.
+-}
+toProjectsFilteredByTimeframe : Time.Posix 
+                            -> Time.Posix
+                            -> Sheet
+                            -> Dict Project.ID Project
+toProjectsFilteredByTimeframe startTime endTime sheet =
+    let
+        compileResults =
+            \k maybeProj results ->
+                case maybeProj of
+                    Nothing ->
+                        results
+
+                    Just p ->
+                        Dict.insert k p results
+
+    in
+    sheet.projects
+    |> Dict.map (\_ p -> Project.filterBlocksByTimeframe startTime endTime p)
+    |> Dict.foldl compileResults Dict.empty
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
