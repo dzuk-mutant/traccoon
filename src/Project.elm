@@ -40,13 +40,13 @@ of these projects.
 @docs replaceSubtaskIDs
 -}
 
+import Array exposing (Array)
 import Block exposing (Block)
-import Currency
 import Dict exposing (Dict)
+import Currency
 import Helper exposing (millisToHours)
 import ProjectType
 import Subtask
-import Time
 
 
 ---------------------------------------------------------------------
@@ -62,16 +62,6 @@ type alias ID =
     Int
 
 
-{-| Blocks are a Dict so they can be deleted and edited.
-
-The key of blocks in a project is the project's start time as an Int.
-
-( `key == Time.posixToMillis block.start` )
-
--}
-type alias Blocks =
-    Dict Int Block
-
 
 {-| A Project is a particular work job.
 
@@ -84,7 +74,7 @@ type alias Project =
     { name : String
     , projTypeID : ProjectType.ID
     , monetaryValue : MonetaryValue
-    , blocks : Blocks
+    , blocks : Array Block
     }
 
 
@@ -113,7 +103,7 @@ fromValues name projTypeID value =
     { name = name
     , projTypeID = projTypeID
     , monetaryValue = value
-    , blocks = Dict.empty -- Projects start with no blocks
+    , blocks = Array.empty -- Projects start with no blocks
     }
 
 
@@ -121,17 +111,21 @@ fromValues name projTypeID value =
 -}
 addBlock : Block -> Project -> Project
 addBlock newBlock proj =
-    { proj | blocks = Dict.update (Time.posixToMillis newBlock.start) (\_ -> Just newBlock) proj.blocks }
+    { proj | blocks = Array.push newBlock proj.blocks }
 
 
 {-| Deletes a block from a Project.
 
-If the ID doesn't exist, then the returned Project is the same.
-
+If the ID is out of range of the block length, then the returned Project is the same.
 -}
 deleteBlock : Int -> Project -> Project
 deleteBlock blockID proj =
-    { proj | blocks = Dict.remove blockID proj.blocks }
+    let
+        startSlice = Array.slice 0 (blockID - 1) proj.blocks
+        endSlice = Array.slice (blockID + 1) (Array.length proj.blocks) proj.blocks
+        newBlocks = Array.append startSlice endSlice
+    in
+    { proj | blocks = newBlocks }
 
 
 {-| Takes an existing Project returns the same Project with a new
@@ -164,9 +158,8 @@ spent on a project as an Int in milliseconds.
 toTotalTime : Project -> Int
 toTotalTime proj =
     proj.blocks
-    |> Dict.values
-    |> List.map Block.toTimeLength
-    |> List.foldl (+) 0
+    |> Array.map Block.toTimeLength
+    |> Array.foldl (+) 0
 
 
 {-| Returns a Dict, the key is the Subtask ID and the value is the
@@ -192,8 +185,7 @@ toTimeBreakdown proj =
             \block totals -> Dict.update block.subtaskID (maybeAdd block) totals
     in
     proj.blocks
-    |> Dict.values
-    |> List.foldl accumulate Dict.empty
+    |> Array.foldl accumulate Dict.empty
 
 
 {-| Takes a Project and returns the amount of money earned
@@ -268,9 +260,9 @@ filterBlocksBySubtask : Subtask.ID -> Project -> Maybe Project
 filterBlocksBySubtask subtaskID project =
     let
         filteredBlocks =
-            Dict.filter (\_ b -> b.subtaskID == subtaskID) project.blocks
+            Array.filter (\b -> b.subtaskID == subtaskID) project.blocks
     in
-    if Dict.isEmpty filteredBlocks then
+    if Array.isEmpty filteredBlocks then
         Nothing
 
     else
@@ -295,11 +287,11 @@ working on (ie. it has the right ProjectType ID.)
 replaceSubtaskIDs : Subtask.ID -> Subtask.ID -> Project -> Project
 replaceSubtaskIDs wantedID replacementID project =
     let
-        replaceSubtaskID = (\_ block -> 
+        replaceSubtaskID = (\block -> 
             if block.subtaskID == wantedID then
                 { block | subtaskID = replacementID }
             else
                 block
             )
     in
-        { project | blocks = Dict.map replaceSubtaskID project.blocks}
+        { project | blocks = Array.map replaceSubtaskID project.blocks}
