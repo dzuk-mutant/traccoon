@@ -9,6 +9,7 @@ module ProjectType exposing
     , addSubtask
     , deleteSubtask
 
+    , getSubtaskColor
     , hasSubtask
     )
 
@@ -134,6 +135,17 @@ deleteSubtask subtaskID projType =
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
+
+
+{-| Tries to get a colour from a Subtask ID. If the ProjectType is
+Monolithic, then it returns the monolithic color.
+-}
+getSubtaskColor : Subtask.ID -> ProjectType -> Maybe Color
+getSubtaskColor subtaskID projType =
+    case projType.breakdown of
+        Monolithic m -> Just m
+        Subtasked subtasks ->
+            Maybe.map .color (Dict.get subtaskID subtasks)
 
 
 {-| Checks if a subtask exists in a ProjectType.

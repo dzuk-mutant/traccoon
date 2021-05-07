@@ -1,5 +1,6 @@
 module View.Timeline exposing (weekly)
 
+import Calendar
 import Html.Styled as Html exposing (Html)
 import Sheet exposing (Sheet, Time(..), TimeZone(..))
 import Time
@@ -8,16 +9,22 @@ import Time
 weekly : Sheet -> Html msg
 weekly sheet =
     let
-        time = case sheet.time of
-            NoTime -> Nothing
-            HasTime t -> Just t
-        
-        zone = case sheet.zone of
-           NoTZ -> Nothing
-           HasTZ z -> Just z
-    
+        noView = Html.div [] []
     in
-        if time == Nothing && zone /= Nothing then
-            Html.div [] []
-        else
-            Html.div [] []
+    case sheet.time of
+        NoTime -> noView
+        HasTime time ->
+            case sheet.zone of
+                NoTZ -> noView
+                HasTZ zone ->
+                    weeklyView time zone sheet
+
+
+weeklyView : Time.Posix -> Time.Zone -> Sheet -> Html msg
+weeklyView time zone sheet =
+    let
+        timespan = Calendar.weekSpanFromTime zone time
+        blocks = Sheet.toProjectsFilteredByTimeframe (Tuple.first timespan) (Tuple.second timespan) sheet
+
+    in
+        Html.div [] []

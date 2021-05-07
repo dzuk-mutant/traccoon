@@ -50,7 +50,7 @@ module Sheet exposing
 
 import Block
 import Dict exposing (Dict)
-import Helper
+import Helper exposing (filterDictMaybes)
 import Project exposing (Project)
 import ProjectType exposing (ProjectType)
 import Subtask exposing (Subtask)
@@ -440,16 +440,6 @@ toProjectsFilteredBySubtask : ProjectType.ID
                     -> Sheet
                     -> Result Err (Dict Project.ID Project)
 toProjectsFilteredBySubtask projTypeID subtaskID sheet =
-    let
-        compileResults =
-            \k maybeProj results ->
-                case maybeProj of
-                    Nothing ->
-                        results
-
-                    Just p ->
-                        Dict.insert k p results
-    in
     case Dict.get projTypeID sheet.projTypes of
         Nothing -> Err ProjTypeNotFound
         Just projType ->
@@ -459,7 +449,7 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
                 sheet
                     |> internalToProjectsFilteredByType projTypeID
                     |> Dict.map (\_ p -> Project.filterBlocksBySubtask subtaskID p)
-                    |> Dict.foldl compileResults Dict.empty
+                    |> filterDictMaybes
                     |> Ok
 
 
@@ -472,20 +462,9 @@ toProjectsFilteredByTimeframe : Time.Posix
                             -> Sheet
                             -> Dict Project.ID Project
 toProjectsFilteredByTimeframe startTime endTime sheet =
-    let
-        compileResults =
-            \k maybeProj results ->
-                case maybeProj of
-                    Nothing ->
-                        results
-
-                    Just p ->
-                        Dict.insert k p results
-
-    in
     sheet.projects
     |> Dict.map (\_ p -> Project.filterBlocksByTimeframe startTime endTime p)
-    |> Dict.foldl compileResults Dict.empty
+    |> filterDictMaybes
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------

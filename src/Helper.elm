@@ -1,14 +1,8 @@
-module Helper exposing (millisToHours, getNewIncrementedDictKey)
+module Helper exposing (getNewIncrementedDictKey, filterDictMaybes)
 
 
 import Dict exposing (Dict)
 
-{-| Converts an int representing milliseconds
-into a float representing hours.
--}
-millisToHours : Int -> Float
-millisToHours millis =
-    toFloat millis / 3600000
 
 
 {-| Gets a fresh key for a Dict by looking for the highest existing
@@ -26,3 +20,20 @@ getNewIncrementedDictKey dict =
         |> List.maximum
         |> Maybe.map (\n -> n + 1)
         |> Maybe.withDefault 0
+
+{-| Takes a Dict with Maybe values and filters it into a
+Dict that only has actual values.
+-}
+filterDictMaybes : Dict comparable (Maybe v) -> Dict comparable v
+filterDictMaybes dict =
+    let
+        compileResults =
+            \k maybeProj results ->
+                case maybeProj of
+                    Nothing ->
+                        results
+
+                    Just p ->
+                        Dict.insert k p results
+    in
+    Dict.foldl compileResults Dict.empty dict

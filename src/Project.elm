@@ -43,9 +43,9 @@ of these projects.
 
 import Array exposing (Array)
 import Block exposing (Block)
+import Calendar exposing (millisToHours)
 import Dict exposing (Dict)
 import Currency
-import Helper exposing (millisToHours)
 import ProjectType
 import Subtask
 import Time
