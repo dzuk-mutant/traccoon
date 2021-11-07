@@ -6,7 +6,7 @@ module Subtask exposing
     , edit
     )
 
-{-| The module that handles Stages - sub-tasks within a project.
+{-| The module that handles Subtasks within a project.
 -}
 
 import Color exposing (Color)
@@ -17,7 +17,7 @@ type alias ID =
     Int
 
 
-{-| A project may have multiple stages. This allows the
+{-| A project may have multiple Subtasks. This allows the
 user to keep track of not just the jobs they are doing
 but sub-tasks within those jobs.
 
@@ -30,7 +30,7 @@ type alias Subtask =
     }
 
 
-{-| Creates a stage with a name string and a color value.
+{-| Creates a Subtask with a name string and a color value.
 -}
 fromValues : String -> Color -> Subtask
 fromValues name color =
@@ -39,7 +39,7 @@ fromValues name color =
     }
 
 
-{-| Attempts to create a Stage with a Hex Colour input.
+{-| Attempts to create a Subtask with a Hex Colour input.
 
 If the Hex is invalid, the function will return nothing.
 

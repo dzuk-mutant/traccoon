@@ -55,7 +55,7 @@ import Project exposing (Project)
 import ProjectType exposing (ProjectType)
 import Subtask exposing (Subtask)
 import Time
-
+import Timeframe exposing (Timeframe)
 
 
 ---------------------------------------------------------------------
@@ -75,8 +75,8 @@ at a time.
 
 -}
 type alias Sheet =
-    { projTypes : Dict Int ProjectType
-    , projects : Dict Int Project
+    { projTypes : Dict ProjectType.ID ProjectType
+    , projects : Dict Project.ID Project
     , currentBlock : Maybe CurrentBlock
     , time : Time
     , zone : TimeZone
@@ -367,7 +367,6 @@ The time this function is called will become that block's end time.
 
 It will return an error if the various parts of data required for this
 to work are not there.
-
 -}
 endCurrentBlock : Sheet -> Result Err Sheet
 endCurrentBlock sheet =
@@ -457,13 +456,12 @@ toProjectsFilteredBySubtask projTypeID subtaskID sheet =
 The returned projects' blocks are also filtered based on whether they
 are in that time frame.
 -}
-toProjectsFilteredByTimeframe : Time.Posix 
-                            -> Time.Posix
+toProjectsFilteredByTimeframe : Timeframe
                             -> Sheet
                             -> Dict Project.ID Project
-toProjectsFilteredByTimeframe startTime endTime sheet =
+toProjectsFilteredByTimeframe timeframe sheet =
     sheet.projects
-    |> Dict.map (\_ p -> Project.filterBlocksByTimeframe startTime endTime p)
+    |> Dict.map (\_ p -> Project.filterBlocksByTimeframe timeframe p)
     |> filterDictMaybes
 
 ---------------------------------------------------------------------
@@ -484,6 +482,7 @@ getProjType projTypeID sheet =
         Nothing -> Err ProjTypeNotFound
         Just projType -> Ok projType
 
+
 {-| Goes through all of the projects and replaces a specific Subtask ID with another one.
 -}
 replaceSubtaskIDs : ProjectType.ID -> Subtask.ID -> Subtask.ID -> Sheet -> Sheet
@@ -497,6 +496,7 @@ replaceSubtaskIDs projTypeID wantedID replacementID sheet =
             )
     in
     { sheet | projects  = Dict.map replaceIDs sheet.projects}
+
 
 {-| The actual function that gets all of the Projects that have a certain ProjectType.
 -}

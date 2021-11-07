@@ -34,8 +34,8 @@ of these projects.
 # Generating Statistics
 @docs toTotalTime, toTimeBreakdown, toMoneyPerHour, toTotalMoney
 
-# Querying data
-@docs filterBlocksBySubtask
+# Querying/filtering data
+@docs hasProjectTypeID, filterBlocksBySubtask, filterBlocksByTimeframe
 
 # Mass edit
 @docs replaceSubtaskIDs
@@ -48,8 +48,7 @@ import Dict exposing (Dict)
 import Currency
 import ProjectType
 import Subtask
-import Time
-
+import Timeframe exposing (Timeframe)
 
 ---------------------------------------------------------------------
 ---------------------------------------------------------------------
@@ -272,18 +271,15 @@ filterBlocksBySubtask subtaskID project =
 
 
 {-| Returns a Project with blocks that are filtered based on whether
-they have occurred within the specified timeframe. If there are no
-blocks that match the time frme, this will return Nothing.
+they have occurred within the given Timeframe. 
+
+If there are no blocks that match the Timeframe, this will return Nothing.
 -}
-filterBlocksByTimeframe : Time.Posix -> Time.Posix -> Project -> Maybe Project
-filterBlocksByTimeframe startTime endTime project =
+filterBlocksByTimeframe : Timeframe -> Project -> Maybe Project
+filterBlocksByTimeframe timeframe project =
     let
-        checkTimeframe = (\block ->
-            ((block.start == startTime) || (block.start == endTime) )
-            ||
-            ((block.end == startTime) || (block.end == endTime))
-            )
-        filteredBlocks = Array.filter checkTimeframe project.blocks
+        overlapsTimeframe = (\block -> Block.partlyOverlaps timeframe block)
+        filteredBlocks = Array.filter overlapsTimeframe project.blocks
     in
     if Array.isEmpty filteredBlocks then
         Nothing

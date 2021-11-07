@@ -1,7 +1,10 @@
 module Calendar exposing (millisToHours, weekSpanFromTime)
 
 import Time exposing (Weekday(..))
+import Timeframe exposing (Timeframe)
 import Html exposing (time)
+
+
 
 {-| A second in milliseconds.
 -}
@@ -37,11 +40,15 @@ millisToHours millis =
     toFloat millis / toFloat hour
 
 
-{-| Returns a tuple containing the start time and end time representing
-Monday at 00:00 and Sunday at 23:59 that's in the same week as the given time
-and in the same time zone as the given timezone.
+{-| Returns a Timeframe containing:
+
+- Start time at Monday at 00:00:00:000
+- End time at Sunday at 23:59:59:999
+
+That's in the same week as the given time and
+in the same time zone as the given timezone.
 -}
-weekSpanFromTime : Time.Zone -> Time.Posix -> (Time.Posix, Time.Posix)
+weekSpanFromTime : Time.Zone -> Time.Posix -> Timeframe
 weekSpanFromTime zone time =
     let
         nowWeekdayOffset = weekdayToStartOffset <| Time.toWeekday zone time
@@ -60,13 +67,13 @@ weekSpanFromTime zone time =
             |> (-) (nowSecond * second)
             |> (-) (nowMillis)
         
-        start = Time.millisToPosix startMillis
+        start = startMillis
 
         -- get us to Sunday at 23:59:59:999.
-        end = Time.millisToPosix <| startMillis + week - 1
+        end = startMillis + week - 1
 
     in
-        (start, end)
+        Timeframe.fromMillis start end
 
 
 {-| Internal function that determines how far you have to count back
