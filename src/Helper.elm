@@ -1,8 +1,9 @@
-module Helper exposing (getNewIncrementedDictKey, filterDictMaybes)
+module Helper exposing (colorFromType, filterDictMaybes, getNewIncrementedDictKey)
 
-
+import Color exposing (Color)
+import Color.Convert
+import Css exposing (Style)
 import Dict exposing (Dict)
-
 
 
 {-| Gets a fresh key for a Dict by looking for the highest existing
@@ -21,6 +22,7 @@ getNewIncrementedDictKey dict =
         |> Maybe.map (\n -> n + 1)
         |> Maybe.withDefault 0
 
+
 {-| Takes a Dict with Maybe values and filters it into a
 Dict that only has actual values.
 -}
@@ -37,3 +39,13 @@ filterDictMaybes dict =
                         Dict.insert k p results
     in
     Dict.foldl compileResults Dict.empty dict
+
+
+{-| Creates a Css style equivalent to `color` that can accept a Color type instead of a hex string.
+-}
+colorFromType : Color -> Style
+colorFromType colorData =
+    colorData
+        |> Color.Convert.colorToHex
+        |> Css.hex
+        |> Css.color

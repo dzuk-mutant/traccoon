@@ -1,8 +1,9 @@
-module Block exposing (Block, fromValues, toTimeLength, partlyOverlaps, compare)
+module Block exposing (Block, compare, fromValues, partlyOverlaps, toTimeLength)
 
 import Subtask
 import Time
 import Timeframe exposing (Timeframe)
+
 
 {-| A Block is a span of time worked on a particular
 project at a particular stage.

@@ -1,15 +1,27 @@
-module Timeframe exposing (Timeframe, fromPosix, fromMillis, encompasses, partlyOverlaps, compare, toLength)
+module Timeframe exposing
+    ( Timeframe, fromPosix, fromMillis
+    , encompasses, partlyOverlaps, compare
+    , toLength
+    , fromMillisOffset
+    )
 
 {-| A module for conveniently handling and comparing spans of time.
 
+
 # Types
+
 @docs Timeframe, fromPosix, fromMillis
 
+
 # Comparison
+
 @docs encompasses, partlyOverlaps, compare
 
+
 # Conversion
+
 @docs toLength
+
 -}
 
 import Time
@@ -39,7 +51,17 @@ First argument is the start of the timeframe, second argument is the end.
 fromMillis : Int -> Int -> Timeframe
 fromMillis start end =
     { start = Time.millisToPosix start
-    , end = Time.millisToPosix  end
+    , end = Time.millisToPosix end
+    }
+
+
+{-| Creates a Timeframe from one Int representing UNIX time
+and another int representing an offset in milliseconds from that time.
+-}
+fromMillisOffset : Int -> Int -> Timeframe
+fromMillisOffset start offset =
+    { start = Time.millisToPosix start
+    , end = Time.millisToPosix (start + offset)
     }
 
 
@@ -48,9 +70,14 @@ fromMillis start end =
 encompasses : Timeframe -> Time.Posix -> Bool
 encompasses timeframe timePosix =
     let
-        start = Time.posixToMillis timeframe.start
-        end = Time.posixToMillis timeframe.end
-        time = Time.posixToMillis timePosix
+        start =
+            Time.posixToMillis timeframe.start
+
+        end =
+            Time.posixToMillis timeframe.end
+
+        time =
+            Time.posixToMillis timePosix
     in
     time >= start && time <= end
 
@@ -60,17 +87,18 @@ encompasses timeframe timePosix =
 partlyOverlaps : Timeframe -> Timeframe -> Bool
 partlyOverlaps timeframe1 timeframe2 =
     encompasses timeframe1 timeframe2.start
-    || encompasses timeframe1 timeframe2.end
+        || encompasses timeframe1 timeframe2.end
 
 
 {-| Compares two timeframes and returns an Order based on
 which one started first.
 
 Equivalent to `Basics.compare` in functionality.
+
 -}
 compare : Timeframe -> Timeframe -> Order
 compare timeframe1 timeframe2 =
-    compare (Time.posixToMillis timeframe1.start) (Time.posixToMillis timeframe2.start)
+    Basics.compare (Time.posixToMillis timeframe1.start) (Time.posixToMillis timeframe2.start)
 
 
 {-| Returns the length between the start and end of the

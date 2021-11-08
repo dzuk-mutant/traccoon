@@ -76,6 +76,7 @@ If the app detects a currency code it has stored, then it will prettify the curr
 valueToPlainString : Value -> String
 valueToPlainString value =
     let
+        number : String
         number =
             Round.floorCom 2 value.amount
     in
@@ -100,14 +101,16 @@ it a currency stored in this app for cleaner formatting.
 matchCurrency : Value -> Maybe Currency
 matchCurrency value =
     let
+        currencies : List Currency
         currencies =
             [ gbp, eur, usd, jpy, aud, cad, nzd, hkd, krw ]
 
         -- case-insensitive match
+        match : Value -> Currency -> Bool
         match =
-            \currency -> currency.code == String.toUpper value.currencyCode
+            \v c -> c.code == String.toUpper v.currencyCode
     in
-    List.head <| List.filter match currencies
+    List.head <| List.filter (match value) currencies
 
 
 

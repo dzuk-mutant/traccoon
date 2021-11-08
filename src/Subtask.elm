@@ -1,9 +1,9 @@
 module Subtask exposing
     ( ID
     , Subtask
+    , edit
     , fromStrAndHexColor
     , fromValues
-    , edit
     )
 
 {-| The module that handles Subtasks within a project.
@@ -61,6 +61,7 @@ fromStrAndHexColor name colorHex =
 -}
 edit : String -> Color -> Subtask -> Subtask
 edit name color subtask =
-    { subtask | name = name
-              , color = color
+    { subtask
+        | name = name
+        , color = color
     }

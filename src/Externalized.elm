@@ -1,16 +1,19 @@
-module Externalized exposing (Block, blocksFromProjectDict, sortBlocks)
+module Externalized exposing (Block, blocksFromProjectDict, sortBlocks, filterBlocks)
 
 {-| As a default the data structure of Traccoon links objects
 together. For instance, Blocks are intrinsically tied to Projects.
 
 For some views however (like timelines), this is not possible.
 So this module has 'externalized' variants and conversion methods.
+
 -}
 
 import Array
+import Block
 import Dict exposing (Dict)
 import Project
-import Block
+import ProjectType
+import Timeframe exposing (Timeframe)
 
 {-| A block that has been separated from it's project.
 We need to keep the project ID with it so we can still
@@ -18,6 +21,7 @@ find it on demand.
 -}
 type alias Block =
     { projectID : Project.ID
+    , projTypeID : ProjectType.ID
     , block : Block.Block
     }
 
@@ -27,25 +31,34 @@ type alias Block =
 blocksFromProjectDict : Dict Project.ID Project.Project -> List Block
 blocksFromProjectDict projects =
     projects
-    |> Dict.toList
-    |> List.map blocksFromProject
-    |> List.foldl (List.append) []
+        |> Dict.toList
+        |> List.map blocksFromProject
+        |> List.foldl List.append []
 
 
-blocksFromProject : (Project.ID, Project.Project) -> List Block
+blocksFromProject : ( Project.ID, Project.Project ) -> List Block
 blocksFromProject tuple =
     let
-        projID = Tuple.first tuple
-        project = Tuple.second tuple
-    in
-    Array.map (blockFromValues projID) project.blocks
-    |> Array.toList
+        projID =
+            Tuple.first tuple
 
-blockFromValues : Project.ID -> Block.Block -> Block
-blockFromValues projID block =
+        project =
+            Tuple.second tuple
+
+        projTypeID =
+            project.projTypeID
+    in
+    Array.map (blockFromValues projID projTypeID) project.blocks
+        |> Array.toList
+
+
+blockFromValues : Project.ID -> ProjectType.ID -> Block.Block -> Block
+blockFromValues projID projTypeID block =
     { projectID = projID
+    , projTypeID = projTypeID
     , block = block
     }
+
 
 {-| Sorts Externalized.Blocks by which ones started earliest.
 -}
@@ -56,3 +69,13 @@ sortBlocks blocks =
             Block.compare block1.block block2.block
     in
     List.sortWith sort blocks
+
+
+filterBlocks : List Block -> Timeframe -> List Block
+filterBlocks blocks timeframe =
+    let
+        partlyOverlaps : Timeframe -> Block -> Bool
+        partlyOverlaps tf bl =
+            Timeframe.partlyOverlaps tf bl.block.timeframe
+    in
+    List.filter (partlyOverlaps timeframe) blocks
